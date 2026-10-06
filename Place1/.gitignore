@@ -1,0 +1,6 @@
+roblox.yml
+previews/
+sourcemap.json
+*.rbxlx.lock
+*.rbxl.lock
+__pycache__/

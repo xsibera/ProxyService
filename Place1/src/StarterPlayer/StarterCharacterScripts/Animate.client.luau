@@ -1,0 +1,4 @@
+-- Intentionally empty.
+-- A LocalScript named "Animate" in StarterCharacterScripts replaces Roblox's default R6
+-- animation script. Characters are animated by ProceduralAnimator (CombatClient) instead,
+-- which runs every pose at full framerate and blends combat moves with movement.

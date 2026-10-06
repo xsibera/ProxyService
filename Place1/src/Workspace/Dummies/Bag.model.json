@@ -1,0 +1,828 @@
+{
+ "className": "Model",
+ "attributes": {
+  "DummyType": "Bag",
+  "DisplayName": "Punching Bag",
+  "Rojo_Target_PrimaryPart": "Bag-HRP"
+ },
+ "children": [
+  {
+   "className": "Part",
+   "name": "HumanoidRootPart",
+   "properties": {
+    "Anchored": false,
+    "Size": [
+     2,
+     2,
+     1
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -30.0,
+       3,
+       -6.0
+      ],
+      "orientation": [
+       [
+        -0.857493,
+        0.0,
+        -0.514496
+       ],
+       [
+        0.0,
+        1.0,
+        0.0
+       ],
+       [
+        0.514496,
+        0.0,
+        -0.857493
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.5882352941176471,
+     0.596078431372549,
+     0.6274509803921569
+    ],
+    "Material": "SmoothPlastic",
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth",
+    "CanCollide": false,
+    "Transparency": 1
+   },
+   "attributes": {
+    "Rojo_Id": "Bag-HRP"
+   },
+   "children": [
+    {
+     "className": "Motor6D",
+     "name": "RootJoint",
+     "properties": {
+      "C0": {
+       "CFrame": {
+        "position": [
+         0,
+         0,
+         0
+        ],
+        "orientation": [
+         [
+          -1,
+          0,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ],
+         [
+          0,
+          1,
+          0
+         ]
+        ]
+       }
+      },
+      "C1": {
+       "CFrame": {
+        "position": [
+         0,
+         0,
+         0
+        ],
+        "orientation": [
+         [
+          -1,
+          0,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ],
+         [
+          0,
+          1,
+          0
+         ]
+        ]
+       }
+      },
+      "MaxVelocity": 0.1
+     },
+     "attributes": {
+      "Rojo_Target_Part0": "Bag-HRP",
+      "Rojo_Target_Part1": "Bag-Torso"
+     }
+    },
+    {
+     "className": "Attachment",
+     "name": "RootAttachment"
+    }
+   ]
+  },
+  {
+   "className": "Part",
+   "name": "Torso",
+   "properties": {
+    "Anchored": false,
+    "Size": [
+     2,
+     2,
+     1
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -30.0,
+       3,
+       -6.0
+      ],
+      "orientation": [
+       [
+        -0.857493,
+        0.0,
+        -0.514496
+       ],
+       [
+        0.0,
+        1.0,
+        0.0
+       ],
+       [
+        0.514496,
+        0.0,
+        -0.857493
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.5882352941176471,
+     0.596078431372549,
+     0.6274509803921569
+    ],
+    "Material": "SmoothPlastic",
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth",
+    "CanCollide": true,
+    "Transparency": 0
+   },
+   "attributes": {
+    "Rojo_Id": "Bag-Torso"
+   },
+   "children": [
+    {
+     "className": "Motor6D",
+     "name": "Neck",
+     "properties": {
+      "C0": {
+       "CFrame": {
+        "position": [
+         0,
+         1,
+         0
+        ],
+        "orientation": [
+         [
+          -1,
+          0,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ],
+         [
+          0,
+          1,
+          0
+         ]
+        ]
+       }
+      },
+      "C1": {
+       "CFrame": {
+        "position": [
+         0,
+         -0.5,
+         0
+        ],
+        "orientation": [
+         [
+          -1,
+          0,
+          0
+         ],
+         [
+          0,
+          0,
+          1
+         ],
+         [
+          0,
+          1,
+          0
+         ]
+        ]
+       }
+      },
+      "MaxVelocity": 0.1
+     },
+     "attributes": {
+      "Rojo_Target_Part0": "Bag-Torso",
+      "Rojo_Target_Part1": "Bag-Head"
+     }
+    },
+    {
+     "className": "Motor6D",
+     "name": "Right Shoulder",
+     "properties": {
+      "C0": {
+       "CFrame": {
+        "position": [
+         1,
+         0.5,
+         0
+        ],
+        "orientation": [
+         [
+          0,
+          0,
+          1
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          -1,
+          0,
+          0
+         ]
+        ]
+       }
+      },
+      "C1": {
+       "CFrame": {
+        "position": [
+         -0.5,
+         0.5,
+         0
+        ],
+        "orientation": [
+         [
+          0,
+          0,
+          1
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          -1,
+          0,
+          0
+         ]
+        ]
+       }
+      },
+      "MaxVelocity": 0.1
+     },
+     "attributes": {
+      "Rojo_Target_Part0": "Bag-Torso",
+      "Rojo_Target_Part1": "Bag-RightArm"
+     }
+    },
+    {
+     "className": "Motor6D",
+     "name": "Left Shoulder",
+     "properties": {
+      "C0": {
+       "CFrame": {
+        "position": [
+         -1,
+         0.5,
+         0
+        ],
+        "orientation": [
+         [
+          0,
+          0,
+          -1
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          1,
+          0,
+          0
+         ]
+        ]
+       }
+      },
+      "C1": {
+       "CFrame": {
+        "position": [
+         0.5,
+         0.5,
+         0
+        ],
+        "orientation": [
+         [
+          0,
+          0,
+          -1
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          1,
+          0,
+          0
+         ]
+        ]
+       }
+      },
+      "MaxVelocity": 0.1
+     },
+     "attributes": {
+      "Rojo_Target_Part0": "Bag-Torso",
+      "Rojo_Target_Part1": "Bag-LeftArm"
+     }
+    },
+    {
+     "className": "Motor6D",
+     "name": "Right Hip",
+     "properties": {
+      "C0": {
+       "CFrame": {
+        "position": [
+         1,
+         -1,
+         0
+        ],
+        "orientation": [
+         [
+          0,
+          0,
+          1
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          -1,
+          0,
+          0
+         ]
+        ]
+       }
+      },
+      "C1": {
+       "CFrame": {
+        "position": [
+         0.5,
+         1,
+         0
+        ],
+        "orientation": [
+         [
+          0,
+          0,
+          1
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          -1,
+          0,
+          0
+         ]
+        ]
+       }
+      },
+      "MaxVelocity": 0.1
+     },
+     "attributes": {
+      "Rojo_Target_Part0": "Bag-Torso",
+      "Rojo_Target_Part1": "Bag-RightLeg"
+     }
+    },
+    {
+     "className": "Motor6D",
+     "name": "Left Hip",
+     "properties": {
+      "C0": {
+       "CFrame": {
+        "position": [
+         -1,
+         -1,
+         0
+        ],
+        "orientation": [
+         [
+          0,
+          0,
+          -1
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          1,
+          0,
+          0
+         ]
+        ]
+       }
+      },
+      "C1": {
+       "CFrame": {
+        "position": [
+         -0.5,
+         1,
+         0
+        ],
+        "orientation": [
+         [
+          0,
+          0,
+          -1
+         ],
+         [
+          0,
+          1,
+          0
+         ],
+         [
+          1,
+          0,
+          0
+         ]
+        ]
+       }
+      },
+      "MaxVelocity": 0.1
+     },
+     "attributes": {
+      "Rojo_Target_Part0": "Bag-Torso",
+      "Rojo_Target_Part1": "Bag-LeftLeg"
+     }
+    }
+   ]
+  },
+  {
+   "className": "Part",
+   "name": "Head",
+   "properties": {
+    "Anchored": false,
+    "Size": [
+     2,
+     1,
+     1
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -30.0,
+       4.5,
+       -6.0
+      ],
+      "orientation": [
+       [
+        -0.857493,
+        0.0,
+        -0.514496
+       ],
+       [
+        0.0,
+        1.0,
+        0.0
+       ],
+       [
+        0.514496,
+        0.0,
+        -0.857493
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.9215686274509803,
+     0.8431372549019608,
+     0.7254901960784313
+    ],
+    "Material": "SmoothPlastic",
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth",
+    "CanCollide": true,
+    "Transparency": 0
+   },
+   "attributes": {
+    "Rojo_Id": "Bag-Head"
+   },
+   "children": [
+    {
+     "className": "SpecialMesh",
+     "name": "Mesh",
+     "properties": {
+      "MeshType": "Head",
+      "Scale": [
+       1.25,
+       1.25,
+       1.25
+      ]
+     }
+    },
+    {
+     "className": "Decal",
+     "name": "face",
+     "properties": {
+      "Texture": "rbxasset://textures/face.png",
+      "Face": "Front"
+     }
+    }
+   ]
+  },
+  {
+   "className": "Part",
+   "name": "Right Arm",
+   "properties": {
+    "Anchored": false,
+    "Size": [
+     1,
+     2,
+     1
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -31.2862,
+       3.0,
+       -5.2283
+      ],
+      "orientation": [
+       [
+        -0.857493,
+        0.0,
+        -0.514496
+       ],
+       [
+        0.0,
+        1.0,
+        0.0
+       ],
+       [
+        0.514496,
+        0.0,
+        -0.857493
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.47058823529411764,
+     0.48627450980392156,
+     0.5254901960784314
+    ],
+    "Material": "SmoothPlastic",
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth",
+    "CanCollide": false,
+    "Transparency": 0
+   },
+   "attributes": {
+    "Rojo_Id": "Bag-RightArm"
+   }
+  },
+  {
+   "className": "Part",
+   "name": "Left Arm",
+   "properties": {
+    "Anchored": false,
+    "Size": [
+     1,
+     2,
+     1
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -28.7138,
+       3.0,
+       -6.7717
+      ],
+      "orientation": [
+       [
+        -0.857493,
+        0.0,
+        -0.514496
+       ],
+       [
+        0.0,
+        1.0,
+        0.0
+       ],
+       [
+        0.514496,
+        0.0,
+        -0.857493
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.47058823529411764,
+     0.48627450980392156,
+     0.5254901960784314
+    ],
+    "Material": "SmoothPlastic",
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth",
+    "CanCollide": false,
+    "Transparency": 0
+   },
+   "attributes": {
+    "Rojo_Id": "Bag-LeftArm"
+   }
+  },
+  {
+   "className": "Part",
+   "name": "Right Leg",
+   "properties": {
+    "Anchored": false,
+    "Size": [
+     1,
+     2,
+     1
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -30.4287,
+       1.0,
+       -5.7428
+      ],
+      "orientation": [
+       [
+        -0.857493,
+        0.0,
+        -0.514496
+       ],
+       [
+        0.0,
+        1.0,
+        0.0
+       ],
+       [
+        0.514496,
+        0.0,
+        -0.857493
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.47058823529411764,
+     0.48627450980392156,
+     0.5254901960784314
+    ],
+    "Material": "SmoothPlastic",
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth",
+    "CanCollide": false,
+    "Transparency": 0
+   },
+   "attributes": {
+    "Rojo_Id": "Bag-RightLeg"
+   }
+  },
+  {
+   "className": "Part",
+   "name": "Left Leg",
+   "properties": {
+    "Anchored": false,
+    "Size": [
+     1,
+     2,
+     1
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -29.5713,
+       1.0,
+       -6.2572
+      ],
+      "orientation": [
+       [
+        -0.857493,
+        0.0,
+        -0.514496
+       ],
+       [
+        0.0,
+        1.0,
+        0.0
+       ],
+       [
+        0.514496,
+        0.0,
+        -0.857493
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.47058823529411764,
+     0.48627450980392156,
+     0.5254901960784314
+    ],
+    "Material": "SmoothPlastic",
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth",
+    "CanCollide": false,
+    "Transparency": 0
+   },
+   "attributes": {
+    "Rojo_Id": "Bag-LeftLeg"
+   }
+  },
+  {
+   "className": "Humanoid",
+   "name": "Humanoid",
+   "properties": {
+    "RigType": "R6",
+    "HipHeight": 0,
+    "MaxHealth": 150,
+    "Health": 150,
+    "DisplayDistanceType": "None"
+   },
+   "children": [
+    {
+     "className": "Animator",
+     "name": "Animator"
+    }
+   ]
+  },
+  {
+   "className": "BodyColors",
+   "name": "Body Colors",
+   "properties": {
+    "HeadColor3": [
+     0.9215686274509803,
+     0.8431372549019608,
+     0.7254901960784313
+    ],
+    "TorsoColor3": [
+     0.5882352941176471,
+     0.596078431372549,
+     0.6274509803921569
+    ],
+    "LeftArmColor3": [
+     0.47058823529411764,
+     0.48627450980392156,
+     0.5254901960784314
+    ],
+    "RightArmColor3": [
+     0.47058823529411764,
+     0.48627450980392156,
+     0.5254901960784314
+    ],
+    "LeftLegColor3": [
+     0.47058823529411764,
+     0.48627450980392156,
+     0.5254901960784314
+    ],
+    "RightLegColor3": [
+     0.47058823529411764,
+     0.48627450980392156,
+     0.5254901960784314
+    ]
+   }
+  }
+ ]
+}
