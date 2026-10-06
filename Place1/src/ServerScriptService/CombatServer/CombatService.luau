@@ -103,6 +103,8 @@ function CombatService.Register(model, opts)
 
 		StunUntil = 0,
 		StunKind = nil, -- "Stunned" | "Parried" | "GuardBroken"
+		RestorePosture = false, -- refill posture once the current stun ends (after a guard break)
+		StunParryUntil = 0, -- a block pressed during hitstun parries until this time
 
 		Posture = MAX_POSTURE,
 		PostureSent = MAX_POSTURE,
@@ -229,8 +231,11 @@ end
 
 local function stun(f, duration, kind)
 	local t = now()
-	f.StunUntil = math.max(f.StunUntil, t + duration)
-	f.StunKind = kind
+	local untilTime = t + duration
+	if untilTime >= f.StunUntil or not f.StunKind then
+		f.StunUntil = untilTime
+		f.StunKind = kind
+	end
 end
 
 ----------------------------------------------------------------------------------------------
@@ -239,10 +244,12 @@ end
 local function applyGuardBreak(attacker, victim, spec, dir, contact, t)
 	cancelAction(victim)
 	endSlide(victim)
-	victim.Blocking = false
+	endBlock(victim)
 	victim.WantsBlock = false
 	victim.Posture = 0
 	victim.LastPostureDamage = t
+	victim.RestorePosture = true
+	victim.StunParryUntil = 0
 	stun(victim, Config.GuardBreak.Stun, "GuardBroken")
 	local damage = if spec.GuardBreak then spec.Damage * 0.35 else 0
 	if damage > 0 then
@@ -275,29 +282,39 @@ local function resolve(attacker, victim, kind, index, spec)
 	end
 
 	local facing = isFacing(victim, attacker)
-	if victim.Blocking and facing then
-		-- Parry: the first moments of a fresh block
-		if victim.ParryEligible and (t - victim.BlockStart) <= Config.Parry.Window then
-			cancelAction(attacker)
-			endSlide(attacker)
-			attacker.Combo = 0
-			stun(attacker, Config.Parry.AttackerStun, "Parried")
-			physicsPush(attacker, -dir * Config.Parry.AttackerPushback, 0.12)
-			victim.Posture = math.min(MAX_POSTURE, victim.Posture + Config.Parry.PostureRestore)
-			victim.LastParryAttempt = -math.huge -- a successful parry never locks you out
-			victim.BlockStart = t -- and keeps the window open for a follow-up hit
-			broadcast("Parry", {
-				Attacker = attacker.Model,
-				Victim = victim.Model,
-				Position = contact,
-				Direction = dir,
-				Stun = Config.Parry.AttackerStun,
-				Knockback = -dir * Config.Parry.AttackerPushback,
-			})
-			emit(resultListeners, "Parry", attacker, victim)
-			return "Parry"
+	-- Parry: the first moments of a fresh block, or a block pressed during hitstun
+	local blockParry = victim.Blocking and victim.ParryEligible and (t - victim.BlockStart) <= Config.Parry.Window
+	local stunParry = t <= victim.StunParryUntil and victim.StunKind == "Stunned"
+	if facing and (blockParry or stunParry) then
+		cancelAction(attacker)
+		endSlide(attacker)
+		attacker.Combo = 0
+		attacker.StunParryUntil = 0
+		stun(attacker, Config.Parry.AttackerStun, "Parried")
+		physicsPush(attacker, -dir * Config.Parry.AttackerPushback, 0.12)
+		if stunParry then
+			-- parrying out of a combo frees you from the hitstun
+			victim.StunUntil = t
+			victim.StunKind = nil
+			victim.StunParryUntil = 0
 		end
+		victim.Posture = math.min(MAX_POSTURE, victim.Posture + Config.Parry.PostureRestore)
+		victim.LastParryAttempt = -math.huge -- a successful parry never locks you out
+		victim.BlockStart = t -- and keeps the window open for a follow-up hit
+		broadcast("Parry", {
+			Attacker = attacker.Model,
+			Victim = victim.Model,
+			Position = contact,
+			Direction = dir,
+			Stun = Config.Parry.AttackerStun,
+			Knockback = -dir * Config.Parry.AttackerPushback,
+			FromStun = stunParry,
+		})
+		emit(resultListeners, "Parry", attacker, victim)
+		return "Parry"
+	end
 
+	if victim.Blocking and facing then
 		if spec.GuardBreak then
 			applyGuardBreak(attacker, victim, spec, dir, contact, t)
 			return "GuardBreak"
@@ -399,7 +416,20 @@ end
 ----------------------------------------------------------------------------------------------
 -- Actions
 
-local function startAttack(f, kind, index, spec, seq)
+local function pickAnim(spec, requested)
+	if spec.Anims then
+		for _, name in ipairs(spec.Anims) do
+			if name == requested then
+				return name
+			end
+		end
+		return spec.Anims[math.random(1, #spec.Anims)]
+	end
+	return spec.Anim
+end
+CombatService.PickAnim = pickAnim
+
+local function startAttack(f, kind, index, spec, seq, requestedAnim)
 	local t = now()
 	f.ActionToken += 1
 	local token = f.ActionToken
@@ -408,7 +438,10 @@ local function startAttack(f, kind, index, spec, seq)
 	f.HitTime = t + spec.Windup
 	endSlide(f)
 	f.Model:SetAttribute("AttackKind", kind)
-	broadcast("Attack", { Model = f.Model, Kind = kind, Index = index, Anim = spec.Anim, Seq = seq })
+	broadcast(
+		"Attack",
+		{ Model = f.Model, Kind = kind, Index = index, Anim = pickAnim(spec, requestedAnim), Seq = seq }
+	)
 	emit(attackListeners, f, kind, spec, index)
 
 	if f.IsDummy and spec.Lunge then
@@ -436,9 +469,9 @@ end
 
 local tryM1, tryHeavy
 
-local function queue(f, kind, seq, at)
+local function queue(f, kind, seq, at, anim)
 	if f.Queued then
-		return
+		return reject(f, kind, seq)
 	end
 	local entry = { Kind = kind, Seq = seq }
 	f.Queued = entry
@@ -446,7 +479,7 @@ local function queue(f, kind, seq, at)
 		if f.Queued == entry then
 			f.Queued = nil
 			if kind == "M1" then
-				tryM1(f, seq)
+				tryM1(f, seq, anim)
 			else
 				tryHeavy(f, seq)
 			end
@@ -454,15 +487,15 @@ local function queue(f, kind, seq, at)
 	end)
 end
 
-function tryM1(f, seq)
+function tryM1(f, seq, anim)
 	local t = now()
-	if f.Dead or isStunned(f, t) or f.Blocking then
+	if f.Dead or isStunned(f, t) or f.Blocking or t < f.DodgingUntil then
 		return reject(f, "M1", seq)
 	end
 	local readyAt = math.max(f.ActionEnd, f.ComboCooldownUntil)
 	if t < readyAt then
 		if readyAt - t <= QUEUE_WINDOW then
-			return queue(f, "M1", seq, readyAt)
+			return queue(f, "M1", seq, readyAt, anim)
 		end
 		return reject(f, "M1", seq)
 	end
@@ -472,7 +505,7 @@ function tryM1(f, seq)
 	f.Combo = f.Combo % #HITS + 1
 	local index = f.Combo
 	local spec = HITS[index]
-	startAttack(f, "M1", index, spec, seq)
+	startAttack(f, "M1", index, spec, seq, anim)
 	f.LastM1End = t + spec.Duration
 	if index == #HITS then
 		f.Combo = 0
@@ -482,7 +515,7 @@ end
 
 function tryHeavy(f, seq)
 	local t = now()
-	if f.Dead or isStunned(f, t) or f.Blocking or t < f.HeavyCooldownUntil then
+	if f.Dead or isStunned(f, t) or f.Blocking or t < f.HeavyCooldownUntil or t < f.DodgingUntil then
 		return reject(f, "Heavy", seq)
 	end
 	if t < f.ActionEnd then
@@ -499,7 +532,7 @@ end
 local function startBlock(f, t)
 	f.Blocking = true
 	f.BlockStart = t
-	local fresh = (t - f.BlockPressTime) <= 0.25
+	local fresh = (t - f.BlockPressTime) <= 0.25 and not f.BlockNoParry
 	f.ParryEligible = fresh and (t - f.LastParryAttempt) >= Config.Parry.Cooldown
 	if f.ParryEligible then
 		f.LastParryAttempt = t
@@ -508,10 +541,19 @@ local function startBlock(f, t)
 	broadcast("BlockStart", { Model = f.Model, Parry = f.ParryEligible })
 end
 
-local function tryBlockStart(f)
+-- noParry: raise a plain block with no parry window (used by dummies that only block)
+local function tryBlockStart(f, noParry)
 	local t = now()
 	f.WantsBlock = true
 	f.BlockPressTime = t
+	f.BlockNoParry = noParry == true
+	-- Pressing block while being comboed can still parry the next hit
+	if Config.Parry.DuringHitstun and f.StunKind == "Stunned" and isStunned(f, t) and not noParry then
+		if (t - f.LastParryAttempt) >= Config.Parry.Cooldown then
+			f.LastParryAttempt = t
+			f.StunParryUntil = t + Config.Parry.Window
+		end
+	end
 	if not f.Blocking and canAct(f, t) and t >= f.DodgingUntil then
 		startBlock(f, t)
 	end
@@ -539,13 +581,13 @@ local function tryDodge(f, dir, seq)
 		end
 		cancelAction(f)
 	end
-	f.WantsBlock = false
-	endBlock(f)
+	endBlock(f) -- a held block comes back up once the dodge ends
 	endSlide(f)
 	f.DodgeCooldownUntil = t + Config.Dodge.Cooldown
 	f.DodgingUntil = t + Config.Dodge.Duration
 	f.IFramesUntil = t + Config.Dodge.IFrames + 0.06 -- small allowance for latency
 	broadcast("Dodge", { Model = f.Model, Dir = dir, Seq = seq })
+	return true
 end
 
 local function trySlide(f, active)
@@ -597,7 +639,7 @@ local function onAction(player, action, payload)
 	payload = if type(payload) == "table" then payload else {}
 	local seq = if type(payload.Seq) == "number" then payload.Seq else nil
 	if action == "M1" then
-		tryM1(f, seq)
+		tryM1(f, seq, if type(payload.Anim) == "string" then payload.Anim else nil)
 	elseif action == "Heavy" then
 		tryHeavy(f, seq)
 	elseif action == "BlockStart" then
@@ -658,10 +700,11 @@ local function heartbeat(dt)
 			f.Action = nil
 		end
 		if f.StunKind and t >= f.StunUntil then
-			if f.StunKind == "GuardBroken" then
-				f.Posture = MAX_POSTURE * Config.GuardBreak.PostureAfter
-			end
 			f.StunKind = nil
+		end
+		if f.RestorePosture and t >= f.StunUntil then
+			f.RestorePosture = false
+			f.Posture = MAX_POSTURE * Config.GuardBreak.PostureAfter
 		end
 		if f.Sliding and t >= f.SlideUntil then
 			endSlide(f)
@@ -671,6 +714,7 @@ local function heartbeat(dt)
 		end
 		if
 			f.Posture < MAX_POSTURE
+			and not f.RestorePosture
 			and not isStunned(f, t)
 			and t - f.LastPostureDamage > Config.Block.PostureRegenDelay
 		then
