@@ -161,11 +161,9 @@ def _reref(el):
 def check_hit_delays(hits):
     """The server's HitDelay settings must land on the animations' Hit markers."""
     config = source("Config.luau")
-    expected = {"Rock": "HitDelay = 0.2,", "Paper": "HitDelay = 13 / 60,", "Scissors": "HitDelay = 13 / 60,"}
-    values = {"Rock": 0.2, "Paper": 13 / 60, "Scissors": 13 / 60}
-    for mode, text in expected.items():
-        assert text in config, "Config.%s.HitDelay changed: update check_hit_delays" % mode
-        assert abs(values[mode] - hits["Jajanken " + mode]) < 1e-6, "%s HitDelay != Hit marker" % mode
+    for mode in ("Rock", "Paper", "Scissors"):
+        frame = round(hits["Jajanken " + mode] * FPS)
+        assert "HitDelay = %d / 60," % frame in config, "Config.%s.HitDelay must be %d / 60 (the Hit marker)" % (mode, frame)
 
 
 def jajanken_folder(nen_rbxmx, game):

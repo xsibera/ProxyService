@@ -51,8 +51,8 @@ Config.Rock = {
 	Damage = { 12, 45 },
 	Knockback = { 35, 95 }, -- studs/s
 	Hitbox = { Vector3.new(5, 5, 6), Vector3.new(9, 8, 10) }, -- in front of the caster
-	HitDelay = 0.2, -- seconds from the release to the hit: the "Hit" marker in Jajanken Rock
-	Recovery = 0.75, -- seconds the caster is busy after the release
+	HitDelay = 24 / 60, -- seconds from the release to the hit: the "Hit" marker in Jajanken Rock
+	Recovery = 0.85, -- seconds the caster is busy after the release
 }
 
 Config.Paper = {
@@ -62,8 +62,8 @@ Config.Paper = {
 	Range = { 70, 140 }, -- studs before it bursts by itself
 	Radius = { 1.2, 2.6 }, -- the ball's size for hitting things
 	BlastRadius = { 7, 15 },
-	HitDelay = 13 / 60, -- the "Hit" marker in Jajanken Paper (the ball leaves the palm)
-	Recovery = 0.7,
+	HitDelay = 22 / 60, -- the "Hit" marker in Jajanken Paper (the ball leaves the palm)
+	Recovery = 0.8,
 	AimWithCamera = true, -- throw it where the camera looks (within MaxAimAngle of the facing)
 	MaxAimAngle = 70,
 }
@@ -72,8 +72,8 @@ Config.Scissors = {
 	Damage = { 9, 32 },
 	Knockback = { 15, 40 },
 	Hitbox = { Vector3.new(10, 5, 7), Vector3.new(16, 6, 12) }, -- wide and flat in front
-	HitDelay = 13 / 60, -- the "Hit" marker in Jajanken Scissors
-	Recovery = 0.7,
+	HitDelay = 20 / 60, -- the "Hit" marker in Jajanken Scissors
+	Recovery = 0.8,
 }
 
 -- Published animation ids (rbxassetid://...). Leave empty to use the KeyframeSequences inside

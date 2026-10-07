@@ -60,7 +60,7 @@ Global settings:
 - The keys.
 - `Chant`.
 
-Each `HitDelay` is the time from the release to the hit. It must match the animation's `Hit` marker (Rock 0.2s, Paper and Scissors 13/60s), and the generator checks that it does.
+Each `HitDelay` is the time from the release to the hit. It must match the animation's `Hit` marker (Rock 24/60s, Paper 22/60s, Scissors 20/60s), and the generator checks that it does.
 
 ## How it works
 
@@ -85,22 +85,37 @@ Knockback is a short `LinearVelocity` on the victim's HumanoidRootPart. That pus
 
 ## Animations (R6, 60 fps, legs keyed)
 
+These follow what Gon does in the anime, in the style of your reference animations: your fist M1s and your `abilities` rig (nen burst, ice downslam, leg axe).
+
+1. **"Saisho wa guu!":** he drops into a deep squat, turns his body away from the target, and presses his right fist into his open left palm while the aura gathers in it. That's the charge pose, held while charging.
+2. **"Jan… Ken…":** the fist leaves the palm and draws back as he winds further away.
+3. **The release:**
+   - **"Guu!":** a lunging straight right.
+   - **"Paa!":** a palm thrust that throws the ball.
+   - **"Chii!":** a two-finger blade swept across the front.
+
+Motion previews of the full casts are in `previews/rock_full_cast.gif`, `paper_full_cast.gif` and `scissors_full_cast.gif`.
+
 ![stance and rock](previews/stance_and_rock.png)
 ![paper and scissors](previews/paper_and_scissors.png)
 
 | Clip | Length | What it is |
 |---|---|---|
-| `Jajanken Charge` | 0.4s | Drops into Gon's stance: a deep lunge, left foot forward, body side-on, right fist drawn back past the hip, left hand reaching low at the target. |
-| `Jajanken Hold` | 1s loop | The stance breathing, with the drawn fist trembling as the aura builds. |
-| `Jajanken Rock` | 0.9s | The hips drive, and the right fist rips straight out from the hip at chest height with the body lunging behind it. **Hit** at 0.2s. |
-| `Jajanken Paper` | 0.85s | The right hand comes up from the hip into an open-palm thrust. The ball leaves the palm on **Hit** (0.217s). |
-| `Jajanken Scissors` | 0.85s | The two-finger blade sweeps flat from out on the right round to the left. **Hit** (0.217s) is as it crosses the front. |
+| `Jajanken Charge` | 0.45s | A counter-move up and back, then a hop out into the squat as he turns away. The left palm comes up and the right fist smacks down into it, and the body sinks past the squat before settling. |
+| `Jajanken Hold` | 1.2s loop | Breathing in the squat: the shoulders rise and the body hunches over the hands, while the fist grinds and trembles in the palm. |
+| `Jajanken Rock` | 0.95s | The fist pops off the palm and draws back past the hip as he winds 110° away and sinks ("Jan… Ken…"), with the left hand out at the target. He holds it loaded, then drives up and forward out of the squat: the torso whips round, the right fist rips straight out and the left hand is yanked to the hip. The rear foot is dragged in behind the drive. **Hit** is at 0.4s, and the punch stays out and drifts. |
+| `Jajanken Paper` | 0.9s | The same wind-up with the hand open by the hip, then the open palm is driven straight out at the target. The ball leaves the palm on **Hit** (0.367s), and its kick knocks the arm and body back before he settles behind the palm. |
+| `Jajanken Scissors` | 0.9s | The fist pops off the palm and the hand swings up and out wide to the right as he winds away and rises. The torso then whips about 200° round, sweeping the two-finger blade flat across the front from right to left and on round to the left, with the left arm thrown back for balance. **Hit** is at 0.333s, as the blade crosses the front. |
 
-**How they're built:**
-- **Releases:** every release starts on the exact stance pose, so it cuts in from the hold at any frame.
-- **Legs:** planted: each leg is swung just far enough for its foot to land on the floor.
-- **Arms:** aimed from the shoulder, so a rigid R6 arm never pokes out above it.
-- **Smoothing:** the same as the M1s, with angular jerk cut 2.0–3.1×.
+**How they're built (the reference rhythm):**
+- **The beats:** counter-move → coil (the torso winds 40–50° further away and the arm chambers out of its socket) → loaded slow-in → a 4-frame whip (the torso swings 140–200° and the strike shoots out) → overshoot → settle → a slow drift on the held pose.
+- **Curves:** the coil, whip, settle and drift curves are the ones measured from your reference animations.
+- **Head:** it counter-turns so the eyes stay on the target, and tucks at the hit.
+- **Scale:** the motion is as big as your ability animations. The body drops up to 1.35 studs, arms slide up to 1 stud out of the socket for reach, and legs slide up to 1.25 studs into the hip to fake a bent knee, as your downslam does.
+- **Feet:** they're planted. Every leg is aimed from its hip at a spot on the floor, with the knee turned the way the hips face. A pass after baking keeps each foot on the floor every frame, so nothing slides through the ground or floats.
+- **Smoothing:** angular jerk is cut 2.1–2.3×, like the M1s.
+
+Every release starts on the exact squat pose, so it cuts in from the hold at any frame. The `HitDelay` values in Config are the Hit markers (Rock 24/60s, Paper 22/60s, Scissors 20/60s), and the build fails if they ever drift apart.
 
 The rig's AnimSaves also has a **full-cast preview** per mode (charge → 1s hold → release) to watch in the Animation Editor.
 
