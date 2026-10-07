@@ -1,8 +1,8 @@
 --!nocheck
--- The test area's training dummies (DummyBrains) with the parry system: the blocker keeps its
+-- The village training yard's dummies (DummyBrains) with the parry system: the blocker keeps its
 -- guard up and turns to face you, the parrier parries what's coming at it, the sparring dummy
 -- throws telegraphed punches you can parry. Run from this folder:
---   cd Abilities/Jajanken && luaurun tests/dummies.luau
+--   cd Abilities/Village && luaurun tests/dummies.luau
 
 local H = assert(loadfile("tests/harness.luau"))()
 H.withCombatAndLoadout()

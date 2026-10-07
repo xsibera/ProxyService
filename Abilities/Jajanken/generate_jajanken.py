@@ -5,9 +5,8 @@
 ANIMSFORCLAUDE gives the R6 rig, and nen.rbxmx (VFXFORCLAUDE + the nen auras) gives the emitters the
 effects are built from. Writes into build/:
   Jajanken.rbxmx       the ReplicatedStorage folder (Config, JajankenVFX + effects + sounds, Animations, Remote)
-  TestArea.rbxmx       the test ground for the place: floor, spawn, pillars, dummies (plain ones and
-                       the parry system's training dummies), the animation rigs (Gon's, and Killua's
-                       from ../Killua/build when it has been built)
+  JajankenRig.rbxmx    the animation rig, which the ability place's village (../Village) stands in its
+                       training yard
 and next to this file:
   Jajanken.rbxmx       the labelled kit: folders named for where each piece goes in your own game
                        (with the parry system and the ability menu from ../Combat/build and
@@ -238,42 +237,15 @@ def dummy(rig_source, name, position, yaw):
     return _reref(moved(rig, at(position[0], 3, position[1], yaw)))
 
 
-def test_area(rig_source, game, previews):
-    slate, concrete = 800, 816
-    floor = part("Floor", (300, 8, 300), (0, -4, 0), (44, 46, 54), slate)
-    spawn = part(
-        "SpawnLocation", (10, 0.4, 10), (0, 0.2, 30), (255, 170, 70), concrete, cls="SpawnLocation",
-        Neutral=("bool", "true"), Duration=("int", "0"),
-    )
-    pillars = folder("Pillars (to throw Paper at)", [
-        part("Pillar", (6, 24, 6), (x, 12, z), (92, 88, 82), concrete) for x, z in ((-30, -50), (0, -70), (30, -50))
-    ])
-    dummies = [
-        dummy(rig_source, "Dummy", (0, 12), 180),
-        dummy(rig_source, "Dummy", (-6, 4), 180),
-        dummy(rig_source, "Dummy", (6, 4), 180),
-        dummy(rig_source, "Dummy (far, for Paper)", (0, -30), 180),
-        # the parry system's training dummies (DummyBrains gives them their behaviour, by name)
-        dummy(rig_source, "Blocking Dummy", (-22, 0), 180),
-        dummy(rig_source, "Parrying Dummy", (22, 0), 180),
-        dummy(rig_source, "Sparring Dummy", (0, -14), 180),
-    ]
-    dummy_model = item("Model", "Test Dummies", dummies + [
-        script("Script", "DummyRespawn", "DummyRespawn.server.luau"),
-        script("Script", "DummyBrains", "DummyBrains.server.luau"),
-    ])
+def jajanken_rig(rig_source, game, previews):
+    """The animation rig (AnimSaves with the five animations and the full-cast previews). The ability
+    place's village (../Village) stands it in its training yard."""
     rig, saves = reference_rig(rig_source, "Jajanken Animation Rig")
     for name in ANIMATIONS.values():
         saves.append(copy.deepcopy(game[name]))
     for p in previews:
         saves.append(copy.deepcopy(p))
-    rig = _reref(moved(rig, at(-24, 3, 24, 90)))
-    numbers = script("Script", "DamageNumbers", "DamageNumbers.server.luau")
-    children = [floor, spawn, pillars, dummy_model, rig, numbers]
-    killua_rig = built(os.path.join("Killua", "build", "KilluaRig.rbxmx"))
-    if killua_rig is not None:
-        children.append(_reref(moved(killua_rig, at(24, 3, 24, -90))))
-    return item("Model", "Jajanken Test Area", children)
+    return _reref(rig)
 
 
 def built(path):
@@ -386,7 +358,7 @@ def build(rig_source, nen_rbxmx):
     check_hit_delays(hits)
     jajanken, summary = jajanken_folder(nen_rbxmx, game)
     write([jajanken], os.path.join(BUILD, "Jajanken.rbxmx"))
-    write([test_area(rig_source, game, previews)], os.path.join(BUILD, "TestArea.rbxmx"))
+    write([jajanken_rig(rig_source, game, previews)], os.path.join(BUILD, "JajankenRig.rbxmx"))
     write([labelled_kit(jajanken, rig_source, game, previews)], os.path.join(HERE, "Jajanken.rbxmx"))
     open(os.path.join(HERE, "tests", "effects_tree.luau"), "w").write(lua_effects(summary))
     for name, rows in summary.items():

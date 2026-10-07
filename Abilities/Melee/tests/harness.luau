@@ -1,6 +1,7 @@
 --!nocheck
--- Setup for the Melee tests: the kits' test engine, ReplicatedStorage.Melee built from src/ (with a
--- recording stand-in for the effects pack) and ReplicatedStorage.Combat, which does the stun.
+-- Setup for the Melee tests: the kits' test engine, ReplicatedStorage.Melee built from src/, a
+-- recording stand-in for the effects pack (ReplicatedStorage.CombatVFX) and ReplicatedStorage.Combat,
+-- which does the stun.
 
 local H = assert(loadfile("../Shared/tests/engine.luau"))()
 local mock = H.mock
@@ -10,7 +11,7 @@ local melee = mock.newInstance("Folder", "Melee")
 melee.Parent = RS
 H.folder = melee
 H.Config = mock.module(melee, "Config", "src/Config.luau")
-H.VFXModule = mock.module(melee, "CombatVFX", "tests/FakeCombatVFX.luau")
+H.VFXModule = mock.module(RS, "CombatVFX", "../Shared/tests/FakeCombatVFX.luau")
 H.sounds(melee, { "Swing", "Hit", "Finisher" })
 H.remote = mock.newInstance("RemoteEvent", "Remote")
 H.remote.Parent = melee

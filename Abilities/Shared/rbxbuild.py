@@ -113,6 +113,36 @@ def sounds_folder(reference_rbxmx, wanted):
     return folder("Sounds", out)
 
 
+def combat_vfx():
+    """The combat effects pack (VFX/CombatVFX): the CombatVFX module with its Effects, as its generator
+    built it, carrying the current CombatVFX.luau. It goes in ReplicatedStorage."""
+    vfx = os.path.join(HERE, "..", "..", "VFX", "CombatVFX")
+    module = copy.deepcopy(ET.parse(os.path.join(vfx, "CombatVFX.rbxmx")).getroot().find("Item"))
+    source = module.find("Properties/ProtectedString[@name='Source']")
+    source.text = open(os.path.join(vfx, "CombatVFX.luau")).read()
+    return reref(module)
+
+
+def reference_animation(rig_source, rig_name, animation_name, new_name):
+    """A KeyframeSequence from the reference file (one rig's AnimSaves), copied and renamed."""
+    root = ET.parse(rig_source).getroot()
+    for rig in root.findall("Item"):
+        name = rig.find("Properties/string[@name='Name']")
+        if name is None or name.text != rig_name:
+            continue
+        for kfs in rig.iter("Item"):
+            n = kfs.find("Properties/string[@name='Name']")
+            if kfs.get("class") == "KeyframeSequence" and n is not None and n.text == animation_name:
+                out = copy.deepcopy(kfs)
+                out.find("Properties/string[@name='Name']").text = new_name
+                for props in out.iter("Properties"):
+                    for el in list(props):
+                        if el.tag == "SharedString":
+                            props.remove(el)
+                return reref(out)
+    raise AssertionError("no %s > %s in %s" % (rig_name, animation_name, rig_source))
+
+
 def write(items, path):
     root = ET.Element("roblox", {"version": "4"})
     for it in items:

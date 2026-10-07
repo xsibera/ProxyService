@@ -28,16 +28,14 @@ Gamepad uses X / Y / B. Touch devices get on-screen buttons. In the ability plac
   - the **parry system** (F to block, tap F to parry);
   - the **ability menu** (M) and hotbar.
 
-  You start with Killua's abilities: press M and pick the Gon preset for Jajanken, or mix them. The R6 test ground has:
-  - four plain dummies, and three pillars to throw Paper at;
-  - **training dummies** for the parry system:
-    - a **Blocking Dummy** that keeps its guard up and turns to face you, though not instantly, so you can get behind it;
-    - a **Parrying Dummy** that parries everything it sees coming;
-    - a **Sparring Dummy** that throws a telegraphed punch (it glows red and pulls its arm back) for you to parry or counter.
-  - damage numbers for every hit (damage, BLOCKED, COUNTER, EVADED);
-  - both animation rigs.
+  You start with Killua's abilities: press M and pick the Gon preset for Jajanken, or mix them. It also has **sprinting** (hold Left Ctrl or double-tap W) and **rolling** (Q), see [Movement](../Movement/README.md).
 
-  Dummies stand back up after 3s.
+  The map is **Whale Island** ([Village](../Village/README.md)), a small HxH-style village:
+  - you spawn in the plaza;
+  - east down the yard road is the **training yard**, with the plain dummies and the parry system's Blocking, Parrying and Sparring dummies, plus the animation rigs;
+  - through the village gate and up the forest path, **bandits** guard their camp and fight you with the same M1 stun system.
+
+  Every hit shows its damage (and BLOCKED, COUNTER, EVADED).
 - **`Jajanken.rbxm`**: the same ability as a kit for your own game. It's one folder of labelled folders, each named for where its contents go:
 
   | Folder in the kit | Put it in |
@@ -183,8 +181,12 @@ The textures can't be downloaded here, so the effects were tuned from your emitt
   - `JajankenVFX.luau`
   - `JajankenServer.server.luau`
   - `JajankenClient.client.luau`
-  - the test area's `DummyRespawn`, `DummyBrains` (the training dummies) and `DamageNumbers`.
-- `place.project.json` + `build.sh`: build the ability place with Rojo, including Melee, Killua, Combat and Loadout from their folders. `build.sh` builds those too, and the kits (`Jajanken.rbxm`, `../Killua/Killua.rbxm` and `../Melee/Melee.rbxm`).
+- `place.project.json` + `build.sh`: build the ability place with Rojo, from every package's folder:
+  - Melee, Movement, Killua, Combat and Loadout;
+  - the effects pack;
+  - the village (`../Village`), whose scripts are the dummies' and bandits' brains and the damage numbers.
+
+  `build.sh` builds those too, and the kits: `Jajanken.rbxm`, `../Killua/Killua.rbxm`, `../Melee/Melee.rbxm` and `../Movement/Movement.rbxm`.
 
 ```bash
 ./build.sh path/to/ANIMSFORCLAUDE.rbxmx path/to/nen.rbxmx path/to/rbxconv   # rbxconv: any rbx-dom rbxmx -> rbxm converter
@@ -210,4 +212,4 @@ There are headless tests against Place1's mock engine (`luaurun`, see `Place1/RE
   - a stun cutting a charge short;
   - no charging while blocking or stunned;
   - only equipped modes.
-- `luaurun tests/dummies.luau`, 23 checks: the training dummies' blocking and turning, parrying, telegraphed punches (landing, and being parried), and respawned dummies.
+The training dummies' tests moved to `../Village` with the map.

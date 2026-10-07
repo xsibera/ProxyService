@@ -70,6 +70,7 @@ NumberRange = {
 
 H.remoteLog = {} -- { from = "server" | "client", to = "all" | player | nil, args = {...} }
 H.played = {} -- animation tracks played: { name, fade, model }
+H.tracks = {} -- every animation track loaded
 H.registered = 0 -- KeyframeSequenceProvider registrations
 H.stateEnabled = {} -- Humanoid:SetStateEnabled calls
 H.floorY = 0
@@ -215,6 +216,16 @@ instanceMT.__index = function(self, key)
 			signals[name] = signals[name] or mock.Signal.new()
 			return signals[name]
 		end
+	elseif class == "BindableFunction" and key == "Invoke" then
+		return function(fn, ...)
+			local handler = rawget(fn, "__props").OnInvoke
+			assert(handler, "BindableFunction " .. fn.Name .. " has no OnInvoke")
+			return handler(...)
+		end
+	elseif class == "Humanoid" and key == "MoveTo" then
+		return function(humanoid, target)
+			H.moving[humanoid] = target
+		end
 	elseif class == "Model" and key == "PivotTo" then
 		return function(model, cframe)
 			local pivot = model:GetPivot()
@@ -243,6 +254,7 @@ instanceMT.__index = function(self, key)
 			local props = rawget(track, "__props")
 			local humanoid = animator.Parent
 			props.__model = humanoid and humanoid.Parent
+			table.insert(H.tracks, track)
 			props.Animation = animation
 			props.Length = 0.4
 			props.Speed = 1
@@ -279,6 +291,37 @@ instanceMT.__index = function(self, key)
 	return baseIndex(self, key)
 end
 
+-- Humanoid:MoveTo: walk the model toward the target at its WalkSpeed every frame, along the floor,
+-- facing the way it goes, until it's there
+H.moving = {}
+game:GetService("RunService").Heartbeat:Connect(function(dt)
+	for humanoid, target in pairs(H.moving) do
+		local model = humanoid.Parent
+		local root = model and model:FindFirstChild("HumanoidRootPart")
+		if not root or humanoid.Health <= 0 then
+			H.moving[humanoid] = nil
+		else
+			local to = Vector3.new(target.X - root.Position.X, 0, target.Z - root.Position.Z)
+			local step = (humanoid.WalkSpeed or 16) * dt
+			-- slide every part along (a translation: no rotation error to build up frame after frame) and
+			-- turn the root to face the way it walks (built afresh each time)
+			local arrived = to.Magnitude <= math.max(step, 0.05)
+			local offset = if arrived then to else to.Unit * step
+			for _, d in ipairs(model:GetDescendants()) do
+				if d:IsA("BasePart") then
+					d.CFrame = d.CFrame + offset
+				end
+			end
+			if to.Magnitude > 1e-3 then
+				root.CFrame = CFrame.lookAt(root.Position, root.Position + to.Unit)
+			end
+			if arrived then
+				H.moving[humanoid] = nil
+			end
+		end
+	end
+end)
+
 -- remote messages sent so far with a given first argument (kind), optionally only from one side
 -- ("server" / "client") or through one remote
 function H.sent(kind, from, remote)
@@ -293,6 +336,17 @@ function H.sent(kind, from, remote)
 		end
 	end
 	return out
+end
+
+-- is a track of the KeyframeSequence `name` playing on `model`?
+function H.playing(model, name)
+	for _, track in ipairs(H.tracks) do
+		local props = rawget(track, "__props")
+		if props.__model == model and props.IsPlaying and props.__kfs == "rbxassetid://temp-" .. name then
+			return true
+		end
+	end
+	return false
 end
 
 function H.emitter(parent, name, attrs)

@@ -14,6 +14,7 @@ The rules every ability's hits go through, for a parry-style fight. The kits ([M
   - Press-spamming doesn't work: a parry that caught nothing can't be retried for 0.6s. Holding F still blocks.
   - A parry that lands keeps the window open for the next hit, so a quick string can be parried hit after hit.
 - **Guard break:** when the guard runs out, or a guard-breaking hit lands on it (a fully charged Rock), the block breaks and you're stunned for 1.4s.
+- **Rolling** (Q, see [Movement](../Movement/README.md)) makes you untouchable for its first 0.3s.
 - **Stuns:** a clean hit stuns for a moment. While stunned you can't attack or block, and you walk at 3. Stuns don't stack; the longer one wins. Getting stunned cuts your own attack short.
 - **Blocks and parries only cover the front** (a 150° arc), facing where the hit comes from. Some attacks say otherwise:
   - Thunderbolt comes from above: it can be blocked from any side and can't be parried.
@@ -97,7 +98,7 @@ Server signals (BindableEvents, so connect to `.Event`):
 | `Interrupted` | `(model)` | a stun cut the model's action short |
 | `Announced` | `(attacker, hitAt, ability, position)` | an attack is on its way |
 
-The ability place's **training dummies** (`Jajanken/src/DummyBrains.server.luau`) are written against this API:
+The ability place's **training dummies** (`Village/src/DummyBrains.server.luau`) are written against this API:
 - a **Blocking Dummy** that keeps its guard up and turns to face you, though not instantly;
 - a **Parrying Dummy** that parries what it sees coming, using `Announced`;
 - a **Sparring Dummy** that throws a telegraphed punch to practise parrying and Whirlwind's counter on.

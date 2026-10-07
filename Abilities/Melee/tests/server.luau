@@ -97,7 +97,10 @@ print("== The first hit")
 local t0 = Combat.now()
 m1()
 local first = lastM1()
-check(first and first.to == "all" and first.args[2] == a and first.args[3] == 1, "M1 broadcast: hit 1")
+check(
+	first and first.to == "all" and first.args[2] == aModel and first.args[3] == 1,
+	"M1 broadcast: hit 1 (the attacker's character)"
+)
 check(first and near(first.args[4], t0, 1e-6), "with the server time it was thrown")
 check(
 	announced[1] and announced[1].ability == "M1" and near(announced[1].hitAt, t0 + HITS[1].HitDelay),
@@ -211,7 +214,7 @@ Combat.openParry(dModel)
 mock.advance(0.12)
 check(hitsOn(dModel)[1] and hitsOn(dModel)[1].args[6] == "Parried", "timed F: Parried")
 check(Combat.isStunned(aModel) and aModel:GetAttribute("StunKind") == "Parried", "A staggers")
-check(#sent("Stop") == 1 and sent("Stop")[1].args[2] == a, "Stop broadcast: the string is cut")
+check(#sent("Stop") == 1 and sent("Stop")[1].args[2] == aModel, "Stop broadcast: the string is cut")
 m1()
 check(#sent("M1") == 1, "no swinging while staggered")
 mock.advance(Combat.Settings.ParriedStun + 0.05)
@@ -279,6 +282,31 @@ mock.advance(HITS[1].HitDelay + 0.02)
 check(pHum.Health == 200, "a teammate isn't")
 a.Neutral, p.Neutral = true, true
 pModel.Parent = nil
+settle()
+
+print("== NPCs (the bandits) use it too")
+local npc = serverScript:FindFirstChild("NpcM1")
+local bModel, _, bHum = H.character("Bandit", 30, 0, 0)
+local qModel, _, qHum = H.character("Q", 30, -4, 180)
+local q = H.player("Q", qModel)
+local nModel, _, nHum = H.character("Other NPC", 31.5, -3, 180)
+dModel:PivotTo(CFrame.new(-40, 3, 0))
+check(npc ~= nil and npc:Invoke(bModel) == 1, "NpcM1 throws hit 1 for the NPC")
+check(lastM1().args[2] == bModel, "broadcast with the NPC as the attacker")
+check(npc:Invoke(bModel) == nil, "too soon: nil")
+mock.advance(HITS[1].HitDelay + 0.02)
+check(near(qHum.Health, 200 - HITS[1].Damage * Config.NpcDamage, 1e-3), "a player in front is hit, for NpcDamage")
+check(nHum.Health == 200, "another NPC isn't (they fight players)")
+mock.advance(HITS[1].Next - HITS[1].HitDelay)
+check(npc:Invoke(bModel) == 2, "the string goes on")
+check(npc:Invoke(aModel) == nil, "players' characters can't be driven from here")
+Combat.stun(bModel, 0.3)
+check(sent("Stop")[#sent("Stop")].args[2] == bModel, "a stunned NPC's string is cut too")
+bHum.Health = 0
+mock.advance(0.5)
+check(npc:Invoke(bModel) == nil, "a dead NPC doesn't swing")
+_ = { q, nHum }
+qModel.Parent, nModel.Parent, bModel.Parent = nil, nil, nil
 settle()
 
 print("== Bad input and death")

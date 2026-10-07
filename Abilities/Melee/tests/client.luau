@@ -61,7 +61,7 @@ local function rest()
 	table.clear(H.remoteLog)
 	table.clear(VFX.calls.Play)
 	table.clear(VFX.calls.Swing)
-	serverSays("Stop", a)
+	serverSays("Stop", aModel)
 	table.clear(H.played)
 	root.CFrame = CFrame.new(0, 3, 0)
 end
@@ -137,7 +137,7 @@ check(#m1s() == #HITS + 1, "let go: it stops")
 rest()
 
 print("== Hits")
-serverSays("Hit", a, dModel, 1, Vector3.new(0, 3, -4), "Hit")
+serverSays("Hit", aModel, dModel, 1, Vector3.new(0, 3, -4), "Hit")
 local play = VFX.calls.Play[1]
 check(play and play.name == "M1Hit", "M1Hit on a hit")
 check(
@@ -145,10 +145,10 @@ check(
 	"at the victim, along the hit"
 )
 check(play and table.find(play.options.Ignore, dModel) ~= nil, "the floor probe ignores the victim")
-serverSays("Hit", a, dModel, 5, Vector3.new(0, 3, -4), "Hit")
+serverSays("Hit", aModel, dModel, 5, Vector3.new(0, 3, -4), "Hit")
 check(VFX.calls.Play[2] and VFX.calls.Play[2].name == "M1Final", "M1Final on the finisher")
-serverSays("Hit", a, dModel, 2, Vector3.new(0, 3, -4), "Blocked")
-serverSays("Hit", a, dModel, 2, Vector3.new(0, 3, -4), "Parried")
+serverSays("Hit", aModel, dModel, 2, Vector3.new(0, 3, -4), "Blocked")
+serverSays("Hit", aModel, dModel, 2, Vector3.new(0, 3, -4), "Parried")
 check(#VFX.calls.Play == 2, "blocked and parried hits: none (Combat draws those)")
 mock.advance(1 / 60)
 local offset = aModel.Humanoid.CameraOffset
@@ -158,13 +158,28 @@ check(aModel.Humanoid.CameraOffset == Vector3.zero, "and settles")
 rest()
 
 print("== Other players")
-serverSays("M1", other, 3, workspace:GetServerTimeNow())
+serverSays("M1", oModel, 3, workspace:GetServerTimeNow())
 local theirs = VFX.calls.Swing[1]
 check(
 	theirs and theirs.character == oModel and theirs.track == nil and theirs.options.Duration > HITS[3].HitDelay,
 	"their swing trail (watched for a while)"
 )
 check(#H.played == 0, "no animation played on them here (their own client does)")
+rest()
+
+print("== NPCs (bandits)")
+local bandit = H.character("Bandit", -20, 0, 0)
+serverSays("M1", bandit, 2, workspace:GetServerTimeNow())
+check(H.playing(bandit, "Fist M1_2"), "an NPC's swing is animated here (no client of its own)")
+local npcSwing = VFX.calls.Swing[#VFX.calls.Swing]
+check(npcSwing and npcSwing.character == bandit and npcSwing.track ~= nil, "with its swing trail on the track")
+serverSays("M1", bandit, 3, workspace:GetServerTimeNow())
+check(H.playing(bandit, "Fist M1_3") and not H.playing(bandit, "Fist M1_2"), "the next hit takes over")
+serverSays("Hit", bandit, aModel, 3, aParts.HumanoidRootPart.Position, "Hit")
+mock.advance(1 / 60)
+check(aModel.Humanoid.CameraOffset.Magnitude > 0, "being hit shakes the camera")
+serverSays("Stop", bandit)
+check(not H.playing(bandit, "Fist M1_3"), "a Stop ends its swing")
 rest()
 
 print("== The server's word")
@@ -183,7 +198,7 @@ check(lastPlayed() == "rbxassetid://temp-Fist M1_1", "and the string starts from
 rest()
 click()
 mock.advance(0.2)
-serverSays("Stop", a)
+serverSays("Stop", aModel)
 mock.advance(HITS[1].Next)
 click()
 check(lastPlayed() == "rbxassetid://temp-Fist M1_1", "stopped (stunned): the string starts over")

@@ -4,11 +4,10 @@
 
 The animations are the fist combo's five hits (Animations/FistCombo), the effects are the combat
 effects pack (VFX/CombatVFX) and the sounds are the game's own (from nen.rbxmx). Writes:
-  build/Melee.rbxmx       the ReplicatedStorage folder: Config, CombatVFX (+ Effects), Animations,
-                          Sounds, Remote
+  build/Melee.rbxmx       the ReplicatedStorage folder: Config, Animations, Sounds, Remote
   build/MeleeRig.rbxmx    the animation rig (AnimSaves with the five hits), for publishing
-  Melee.rbxmx             the labelled kit: folders named for where each piece goes, with the stun
-                          system (Combat) it needs
+  Melee.rbxmx             the labelled kit: folders named for where each piece goes, with the effects
+                          pack (CombatVFX) and the stun system (Combat) it needs
 It also checks that Config's HitDelays land on the animations' Hit markers.
 """
 
@@ -16,7 +15,6 @@ import copy
 import os
 import re
 import sys
-import xml.etree.ElementTree as ET
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ABILITIES = os.path.dirname(HERE)
@@ -27,7 +25,6 @@ from animkit import FPS, reference_rig  # noqa: E402
 
 SRC = os.path.join(HERE, "src")
 combo = B.load("fist_combo", os.path.join(ROOT, "Animations", "FistCombo", "generate_combo.py"))
-VFX_DIR = os.path.join(ROOT, "VFX", "CombatVFX")
 
 # the string, in order: (the fist combo's clip, its name here, the Animation the client loads)
 HITS = [
@@ -63,19 +60,9 @@ def check_timings(baked):
     return hits
 
 
-def combat_vfx():
-    """The combat effects pack: the CombatVFX module with its Effects, as VFX/CombatVFX built it,
-    carrying the current CombatVFX.luau."""
-    module = copy.deepcopy(ET.parse(os.path.join(VFX_DIR, "CombatVFX.rbxmx")).getroot().find("Item"))
-    source = module.find("Properties/ProtectedString[@name='Source']")
-    source.text = open(os.path.join(VFX_DIR, "CombatVFX.luau")).read()
-    return B.reref(module)
-
-
 def melee_folder(nen_rbxmx, game):
     return B.folder("Melee", [
         B.module("Config", os.path.join(SRC, "Config.luau")),
-        combat_vfx(),
         B.animations_folder({short: name for _, name, short in HITS}, game),
         B.sounds_folder(nen_rbxmx, SOUNDS),
         B.item("RemoteEvent", "Remote"),
@@ -95,10 +82,11 @@ README = """--[[
 	1. The "Melee" folder                  -> ReplicatedStorage
 	2. MeleeServer (Script)                -> ServerScriptService
 	3. MeleeClient (LocalScript)           -> StarterPlayer > StarterPlayerScripts
-	4. The stun system, which it needs: the Combat folder -> ReplicatedStorage, CombatServer ->
+	4. CombatVFX (the combat effects pack)   -> ReplicatedStorage (skip it if you already have it)
+	5. The stun system, which it needs: the Combat folder -> ReplicatedStorage, CombatServer ->
 	   ServerScriptService, CombatClient -> StarterPlayerScripts. It does the stun (and the hit
 	   reactions, blocking with F and parrying).
-	5. Optional (Workspace): Melee Animation Rig - open it in the Animation Editor to publish the five
+	6. Optional (Workspace): Melee Animation Rig - open it in the Animation Editor to publish the five
 	   hits, then paste their ids into Melee.Config.Animations.
 
 	Play: left click (hold to keep going): jab, overhand, hook, uppercut, spinning backfist. Every hit
@@ -118,12 +106,13 @@ def labelled_kit(melee, rig, combat):
             B.script("Script", "MeleeServer", os.path.join(SRC, "MeleeServer.server.luau"))]),
         B.folder("3. Put MeleeClient in StarterPlayer - StarterPlayerScripts", [
             B.script("LocalScript", "MeleeClient", os.path.join(SRC, "MeleeClient.client.luau"))]),
-        B.folder("4. Needed - the stun system (Combat): folder to ReplicatedStorage, scripts as named", [
+        B.folder("4. Put CombatVFX in ReplicatedStorage (the effects pack)", [B.combat_vfx()]),
+        B.folder("5. Needed - the stun system (Combat): folder to ReplicatedStorage, scripts as named", [
             copy.deepcopy(combat),
             B.script("Script", "CombatServer", os.path.join(cs, "CombatServer.server.luau")),
             B.script("LocalScript", "CombatClient", os.path.join(cs, "CombatClient.client.luau")),
         ]),
-        B.folder("5. Optional - Workspace (animation rig to publish the animations)", [copy.deepcopy(rig)]),
+        B.folder("6. Optional - Workspace (animation rig to publish the animations)", [copy.deepcopy(rig)]),
     ])
     return B.reref(kit)
 

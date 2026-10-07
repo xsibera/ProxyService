@@ -5,8 +5,8 @@
 
     "Workspace": {
       "$className": "Workspace",
-      "Jajanken Test Area": {
-        "$path": "build/TestArea.rbxmx"
+      "Whale Island": {
+        "$path": "../Village/build/Village.rbxmx"
       }
     },
 
@@ -77,6 +77,12 @@
       },
       "Melee": {
         "$path": "../Melee/build/Melee.rbxmx"
+      },
+      "CombatVFX": {
+        "$path": "../../VFX/CombatVFX/CombatVFX.rbxmx"
+      },
+      "Movement": {
+        "$path": "../Movement/build/Movement.rbxmx"
       }
     },
 
@@ -96,6 +102,9 @@
       },
       "MeleeServer": {
         "$path": "../Melee/src/MeleeServer.server.luau"
+      },
+      "MovementServer": {
+        "$path": "../Movement/src/MovementServer.server.luau"
       }
     },
 
@@ -125,6 +134,9 @@
         },
         "MeleeClient": {
           "$path": "../Melee/src/MeleeClient.client.luau"
+        },
+        "MovementClient": {
+          "$path": "../Movement/src/MovementClient.client.luau"
         }
       }
     }

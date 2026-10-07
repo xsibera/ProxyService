@@ -38,6 +38,7 @@ Config.Push = 8 -- studs/s the target is pushed on hits 1-4 (with Lunge, you sta
 Config.Lunge = 10 -- studs/s you step in on each hit
 Config.LungeTime = 0.15
 Config.AttackWalkSpeed = 10 -- while swinging
+Config.NpcDamage = 0.75 -- an NPC's hits (the village's bandits) deal this share of a player's damage
 Config.HitPlayers = true -- false: only NPCs (Humanoids without a Player)
 Config.TeamCheck = true -- don't hit players on your own team (when Teams are used)
 
@@ -51,7 +52,7 @@ Config.Animations = {
 	M1_5 = "",
 }
 
--- the effects (Melee.CombatVFX, the combat effects pack) and sounds (Melee.Sounds)
+-- the effects (ReplicatedStorage.CombatVFX, the combat effects pack) and sounds (Melee.Sounds)
 Config.HitEffect = "M1Hit"
 Config.FinisherEffect = "M1Final"
 Config.SwingEffect = "FistSwing"

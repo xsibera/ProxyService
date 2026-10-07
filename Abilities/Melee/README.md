@@ -31,7 +31,7 @@ Gamepad uses R2. Touch devices get a **Punch** button.
 
 ## Effects
 
-They're from the combat effects pack (`VFX/CombatVFX`), which travels in the kit as `Melee › CombatVFX`:
+They're from the combat effects pack (`VFX/CombatVFX`), which goes in **ReplicatedStorage** as `CombatVFX` (it's in the kit):
 
 | Effect | When |
 |---|---|
@@ -63,11 +63,12 @@ Unpublished animations only play in Studio. To publish them:
 
   | Folder in the kit | Put it in |
   |---|---|
-  | `1. Put the Melee folder in ReplicatedStorage` | `Melee` (Config, CombatVFX + effects, Animations, Sounds, Remote) → **ReplicatedStorage** |
+  | `1. Put the Melee folder in ReplicatedStorage` | `Melee` (Config, Animations, Sounds, Remote) → **ReplicatedStorage** |
   | `2. Put MeleeServer in ServerScriptService` | `MeleeServer` → **ServerScriptService** |
   | `3. Put MeleeClient in StarterPlayer - StarterPlayerScripts` | `MeleeClient` → **StarterPlayer › StarterPlayerScripts** |
-  | `4. Needed - the stun system (Combat)` | `Combat` → ReplicatedStorage, `CombatServer` → ServerScriptService, `CombatClient` → StarterPlayerScripts |
-  | `5. Optional - Workspace` | the animation rig, for publishing |
+  | `4. Put CombatVFX in ReplicatedStorage` | the combat effects pack (skip it if you already have it) |
+  | `5. Needed - the stun system (Combat)` | `Combat` → ReplicatedStorage, `CombatServer` → ServerScriptService, `CombatClient` → StarterPlayerScripts |
+  | `6. Optional - Workspace` | the animation rig, for publishing |
 
   The stun itself lives in the **Combat** module (see [Combat](../Combat/README.md)): the stun timer, the hit reactions, and being unable to act while it lasts. That's why the kit needs it. Your game needs **R6** avatars.
 
@@ -97,7 +98,12 @@ The client:
 - draws everyone else's swings and hits from the server's broadcasts;
 - follows the server's count if they ever disagree.
 
-Other server scripts can react to hits:
+**NPCs fight with it too.** The village's bandits throw their strings from the server, through the same rules:
+- **Throwing:** `ServerScriptService.MeleeServer.NpcM1:Invoke(model)` throws the next hit of that NPC's string. It returns which hit (1–5), or nil if it's too early, or the NPC is stunned or blocking.
+- **Who they hit:** an NPC's hits only land on players (not on other NPCs), for `Config.NpcDamage` (0.75) of a player's damage.
+- **Animation:** every client plays an NPC's swing on it locally, since NPCs have no client of their own to animate them.
+
+Other server scripts can react to hits (`attacker` is the attacking character):
 
 ```lua
 game.ServerScriptService.MeleeServer:WaitForChild("OnHit").Event:Connect(function(attacker, victim, index, damage, outcome)
@@ -109,19 +115,20 @@ end)
 `generate_melee.py` builds `build/Melee.rbxmx`, `build/MeleeRig.rbxmx` and the labelled kit `Melee.rbxmx`. `../Jajanken/build.sh` builds it with everything else.
 
 Tests (`luaurun`, from this folder):
-- `tests/server.luau`, 53 checks:
+- `tests/server.luau`, 62 checks:
   - each hit's timing, damage, stun and push;
   - the whole string landing as a true combo, never out of stun between hits;
   - the finisher's knockback and cooldown;
   - the string starting over when you're too slow;
   - blocked and parried hits, being hit mid-swing, and being busy with an ability;
-  - walk speed, reach, players and teams, bad input and death.
-- `tests/client.luau`, 41 checks:
+  - walk speed, reach, players and teams, bad input and death;
+  - NPCs: their strings through `NpcM1`, hitting players only for the NPC share, and being cut short.
+- `tests/client.luau`, 46 checks:
   - a click, the swing trail, the step in and turning to the camera;
   - early clicks being remembered;
   - holding through the whole string, each hit as it opens;
   - the hit effects and camera shake;
-  - other players' swings;
+  - other players' swings, and NPCs' swings animated here;
   - the server's denials and stops;
   - no swinging while stunned, blocking, busy or clicking on the UI;
   - gamepad and touch.

@@ -20,7 +20,7 @@ local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local Melee = ReplicatedStorage:WaitForChild("Melee")
 local Config = require(Melee:WaitForChild("Config")) :: any
-local VFX = require(Melee:WaitForChild("CombatVFX")) :: any
+local VFX = require(ReplicatedStorage:WaitForChild("CombatVFX")) :: any
 local Remote = Melee:WaitForChild("Remote") :: RemoteEvent
 local AnimationFolder = Melee:WaitForChild("Animations")
 local Sounds = Melee:FindFirstChild("Sounds")
@@ -108,6 +108,34 @@ local function loadTracks(character: Model)
 			end
 		end
 	end
+end
+
+-- NPCs (bandits) have no client of their own to animate them: every client plays their swings
+local npcTracks: { [Model]: { AnimationTrack } } = setmetatable({}, { __mode = "k" }) :: any
+
+local function npcTrack(model: Model, index: number): AnimationTrack?
+	local list = npcTracks[model]
+	if not list then
+		list = {}
+		npcTracks[model] = list
+		local humanoid = model:FindFirstChildOfClass("Humanoid")
+		local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
+		if animator then
+			for i, hit in HITS do
+				local source = animation(hit.Animation)
+				if source then
+					local ok, track = pcall(function()
+						return animator:LoadAnimation(source)
+					end)
+					if ok and track then
+						track.Priority = Enum.AnimationPriority.Action
+						list[i] = track
+					end
+				end
+			end
+		end
+	end
+	return list[index]
 end
 
 local function stopAll(fade: number?)
@@ -279,10 +307,10 @@ end
 --------------------------------------------------------------------------- server events
 
 -- where a hit goes: from the attacker to the victim
-local function hitFrame(attacker: Player, position: Vector3): CFrame
-	local _, root = parts(attacker)
-	local dir = if root then flat(position - root.Position) else Vector3.zero
-	if dir == Vector3.zero and root then
+local function hitFrame(attacker: Model, position: Vector3): CFrame
+	local root = attacker:FindFirstChild("HumanoidRootPart")
+	local dir = if root and root:IsA("BasePart") then flat(position - root.Position) else Vector3.zero
+	if dir == Vector3.zero and root and root:IsA("BasePart") then
 		dir = flat(root.CFrame.LookVector)
 	end
 	return CFrame.lookAt(position, position + (if dir ~= Vector3.zero then dir else Vector3.zAxis))
@@ -309,16 +337,30 @@ local function shake(strength: number)
 end
 
 Remote.OnClientEvent:Connect(function(kind: string, a: any, b: any, c: any, d: any, e: any)
-	if kind == "M1" then -- a: attacker, b: index, c: at
-		if a == player then
+	local mine = a ~= nil and a == player.Character
+	if kind == "M1" then -- a: the attacker (a character), b: index, c: at
+		if mine then
 			if b ~= count then
 				count = b -- the server's count rules (a lost click, say)
 			end
-		else
-			local character, root = parts(a)
+		elseif typeof(a) == "Instance" and a:IsA("Model") then
+			local root = a:FindFirstChild("HumanoidRootPart")
 			local hit = HITS[b]
-			if character and root and hit then
-				VFX.Swing(Config.SwingEffect, character, nil, { Color = Config.Color, Duration = hit.HitDelay + 0.3 })
+			if root and root:IsA("BasePart") and hit then
+				local track = nil
+				if not Players:GetPlayerFromCharacter(a) then
+					-- an NPC: play its swing here
+					track = npcTrack(a, b)
+					for i, other in npcTracks[a] or {} do
+						if i ~= b and other.IsPlaying then
+							other:Stop(0.15)
+						end
+					end
+					if track then
+						track:Play(0.1)
+					end
+				end
+				VFX.Swing(Config.SwingEffect, a, track, { Color = Config.Color, Duration = hit.HitDelay + 0.3 })
 				sound("Swing", root.Position, if b == #HITS then 1.3 else 1)
 			end
 		end
@@ -327,24 +369,26 @@ Remote.OnClientEvent:Connect(function(kind: string, a: any, b: any, c: any, d: a
 			return -- blocked and parried hits: ReplicatedStorage.Combat draws those
 		end
 		local finisher = c == #HITS
-		local ignore = { b }
-		if a.Character then
-			table.insert(ignore, a.Character)
-		end
 		VFX.Play(
 			if finisher then Config.FinisherEffect else Config.HitEffect,
 			hitFrame(a, d),
-			{ Ignore = ignore, Color = Config.Color }
+			{ Ignore = { a, b }, Color = Config.Color }
 		)
 		sound(if finisher then "Finisher" else "Hit", d, 1)
-		if a == player or b == player.Character then
+		if mine or b == player.Character then
 			shake(if finisher then 0.5 else 0.18)
 		end
 	elseif kind == "Stop" then -- a: attacker
-		if a == player then
+		if mine then
 			count = 0
 			queued = false
 			stopAll(0.1)
+		elseif typeof(a) == "Instance" then
+			for _, track in npcTracks[a] or {} do
+				if track.IsPlaying then
+					track:Stop(0.1)
+				end
+			end
 		end
 	elseif kind == "Denied" then -- a: the server's count
 		if typeof(a) == "number" then
