@@ -24,6 +24,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from animkit import (  # noqa: E402
+    world_leg,
     FPS,
     SMOOTHNESS,
     Clip,
@@ -281,11 +282,11 @@ def m1_2():
     return c
 
 
-def aim(hand, blade, arm_dir=None):
+def aim(hand, blade, arm_dir=None, edge=None):
     """Right Arm + Handle channels for a free wrist: the fist sits at `hand` with the arm pointing
     along `arm_dir` (default: from the shoulder to the fist), twisting as little as possible from
-    hanging at rest, and the Handle turns the sword in the fist so the blade points along `blade`,
-    edges up and down. All in Torso space."""
+    hanging at rest, and the Handle turns the sword in the fist so the blade points along `blade`
+    with an edge facing `edge` (default: edges up and down). All in Torso space."""
     c0, c1 = MOTORS["RArm"]
     pivot = c0[:3, 3]
     hand = np.asarray(hand, float)
@@ -304,7 +305,10 @@ def aim(hand, blade, arm_dir=None):
     t = inv(c0) @ arm_cf @ c1
     arm_ch = from_transform("RArm", t[:3, 3], t[:3, :3])
     z = -np.asarray(blade, float) / np.linalg.norm(blade)
-    up = np.array([0.0, 1.0, 0.0]) if abs(z[1]) < 0.9 else -a
+    if edge is not None:
+        up = np.asarray(edge, float)
+    else:
+        up = np.array([0.0, 1.0, 0.0]) if abs(z[1]) < 0.9 else -a
     y = up - z * (up @ z)
     y /= np.linalg.norm(y)
     sword = np.column_stack([np.cross(y, z), y, z])
@@ -423,6 +427,171 @@ def m1_3():
 
 
 M1S = [m1_1, m1_2, m1_3]
+
+# --------------------------------------------------------------------------- running / aerial attacks
+# These two drive the legs, and the sword is flown along a path in world space: the fist follows a
+# curve around the body and the wrist (Handle) keeps the blade along its own curve with the edge
+# leading into the cut, whatever the torso is doing.
+FULL = JOINTS + ("RLeg", "LLeg")
+
+
+def heading(azimuth, elevation=0.0):
+    """World direction: azimuth clockwise from straight ahead (90 = right, 180 = behind)."""
+    a, e = math.radians(azimuth), math.radians(elevation)
+    return np.array([math.sin(a) * math.cos(e), math.sin(e), -math.cos(a) * math.cos(e)])
+
+
+def root_path(c):
+    """The Root track as keyed (unsmoothed), to place world-space targets frame by frame."""
+    path = Clip("root", c.frames, None, "RArm")
+    path.keys["Root"] = c.keys["Root"]
+    path.neck_auto = path.smooth = False
+    return path.bake()["Root"]
+
+
+def fly(c, roots, f, hand, blade, edge, k="linear"):
+    """Key the sword arm and wrist at frame f from world-space fist position, blade and edge."""
+    t = joint_cf("Root", roots[f])
+    rot = t[:3, :3].T
+    arm_ch, handle_ch = aim((inv(t) @ np.append(hand, 1))[:3], rot @ blade, edge=rot @ edge)
+    c.key("RArm", f, arm_ch, k)
+    c.key("Handle", f, handle_ch, k)
+
+
+def running_attack():
+    """Off a sprint with the sword trailing low behind: the left foot plants long, the body winds,
+    then the blade is whipped round the right side and across the front at waist height in one
+    flat sweep as the body drops into a deep lunge. Sword arm and wrist follow world-space curves."""
+    c = Clip("running attack", 54, hit=30, arm="RArm", joints=FULL)
+    c.slerp = {"RArm", "Handle"}
+    run = [-18, 0, 0, 0, -0.2, 0]
+    coil = [-6, -55, 6, 0, -0.32, 0.25]
+    lunge = [-24, 85, -10, 0, -0.74, -0.6]
+    held = [-20, 72, -6, 0, -0.65, -0.48]
+    R = lambda f, v, k="ease": c.key("Root", f, v, k)
+    R(0, run)
+    R(10, coil, "coil")
+    R(34, lunge, "whip")
+    R(46, held, "settle")
+    R(54, [-21, 74, -6, 0, -0.66, -0.48], "drift")
+    N = lambda f, v, k="ease": c.key("Neck", f, v, k)
+    N(0, [-10, 0, 0])
+    N(10, [-12, 0, -4], "coil")
+    N(29, [-16, 0, 8], "snap")
+    N(34, [-18, 0, 10], "stop")
+    N(46, [-14, 0, 7], "settle")
+    N(54, [-15, 0, 7], "drift")
+    roots = root_path(c)
+
+    def at(f, hand_az, reach, height, blade_az, blade_el, k="linear"):
+        hand = heading(hand_az) * reach + np.array([0.0, height, 0.0])
+        blade = heading(blade_az, blade_el)
+        edge = -np.array([math.cos(math.radians(blade_az)), 0.0, math.sin(math.radians(blade_az))])
+        fly(c, roots, f, hand, blade, edge, k)
+
+    at(0, 140, 1.5, -0.9, 180, -20, "ease")  # trailing low behind on the run
+    at(4, 145, 1.6, -0.7, 178, -15, "ease")
+    at(10, 150, 1.9, -0.3, 180, -6, "coil")
+    at(18, 158, 2.0, -0.25, 188, -5, "slowin")
+    for f in range(19, 35):  # the sweep: round the right side and across the front, edge leading
+        u = curve("whip", (f - 18) / 16)
+        at(f, 158 - 208 * u, 2.0 + 0.3 * u, -0.25 - 0.1 * u, 188 - 278 * u, -5 - 4 * u)
+    at(46, -46, 2.25, -0.38, -86, -10, "settle")
+    at(54, -47, 2.25, -0.38, -87, -10, "drift")
+    L = lambda f, v, k="ease": c.key("LArm", f, v, k)
+    L(0, [40, 0, -8, 0, 0, 0])
+    L(10, [30, -10, -16, 0.04, 0.02, -0.1], "coil")
+    L(29, [-30, -8, -20, 0, 0, 0.12], "snap")  # swings back behind for balance
+    L(34, [-36, -8, -22, 0, 0, 0.14], "stop")
+    L(46, [-28, -6, -18, 0, 0, 0.1], "settle")
+    L(54, [-28, -6, -18, 0, 0, 0.1], "drift")
+    for f, root, k, right, left in (
+        (0, run, "ease", (32, 4), (-28, 4)),
+        (10, coil, "coil", (-12, 5), (34, 6)),
+        (34, lunge, "whip", (-58, 7), (52, 8)),
+        (46, held, "settle", (-52, 6), (48, 7)),
+    ):
+        twist = 0.4 * root[1]
+        c.key("RLeg", f, world_leg("RLeg", root, right[0], right[1], twist), k)
+        c.key("LLeg", f, world_leg("LLeg", root, left[0], left[1], twist), k)
+    return c
+
+
+def aerial_attack():
+    """In the air: rises leaning back with the knees tucked and the sword cocked behind the head,
+    holds it, then cleaves over the top and down through the target from high right to low left
+    as the body folds forward and the legs drop to land. Sword arm and wrist follow world curves."""
+    c = Clip("aerial attack", 56, hit=31, arm="RArm", joints=FULL)
+    c.slerp = {"RArm", "Handle"}
+    R = lambda f, v, k="ease": c.key("Root", f, v, k)
+    R(0, [-4, 0, 0, 0, 0, 0])
+    R(14, [18, -35, 8, 0, 0.35, 0.3], "coil")
+    R(21, [20, -38, 9, 0, 0.38, 0.32], "slowin")
+    R(34, [-36, 38, -10, 0, -0.5, -0.5], "snap")
+    R(46, [-30, 32, -7, 0, -0.42, -0.42], "settle")
+    R(56, [-31, 33, -7, 0, -0.43, -0.43], "drift")
+    N = lambda f, v, k="ease": c.key("Neck", f, v, k)
+    N(0, [-6, 0, 0])
+    N(14, [-20, 0, -4], "coil")
+    N(21, [-22, 0, -4], "slowin")
+    N(27, [4, 0, 6], "snap")
+    N(31, [10, 0, 8], "stop")
+    N(45, [6, 0, 5], "settle")
+    N(56, [7, 0, 5], "drift")
+    roots = root_path(c)
+    # blade and fist waypoints (world), slerped between with the whip curve
+    blades = [heading(170, 25), heading(165, 10), heading(20, 75), heading(-25, -20), heading(-45, -42)]
+    hands = [np.array([1.3, 1.9, 0.6]), np.array([1.4, 1.8, 0.8]), np.array([1.0, 1.7, -1.5]),
+             np.array([-0.2, 0.2, -2.2]), np.array([-0.7, -0.5, -1.8])]
+
+    def along(points, u):
+        """Piecewise slerp (vectors) / lerp (points) through the waypoints, u in [0, 1]."""
+        seg = min(len(points) - 2, int(u * (len(points) - 1)))
+        t = u * (len(points) - 1) - seg
+        a, b = points[seg], points[seg + 1]
+        if np.isclose(np.linalg.norm(a), 1.0) and np.isclose(np.linalg.norm(b), 1.0):
+            th = math.acos(max(-1.0, min(1.0, float(a @ b))))
+            return a if th < 1e-6 else (math.sin((1 - t) * th) * a + math.sin(t * th) * b) / math.sin(th)
+        return a + (b - a) * t
+
+    def at(f, u, k="linear"):
+        blade = along(blades, u)
+        ahead = along(blades, min(1.0, u + 0.02))
+        edge = ahead - blade if np.linalg.norm(ahead - blade) > 1e-6 else heading(0, -90)
+        fly(c, roots, f, along(hands, u), blade, edge, k)
+
+    fly(c, roots, 0, np.array([0.7, 0.1, -1.4]), heading(-10, 55), heading(0, -90), "ease")  # stance-ish
+    at(14, 0.0, "coil")  # cocked behind the head
+    at(21, 0.25, "slowin")
+    for f in range(22, 37):  # over the top and down through the target
+        at(f, 0.25 + 0.75 * curve("whip", (f - 21) / 15))
+    at(45, 0.97, "settle")
+    at(56, 0.97, "drift")
+    L = lambda f, v, k="ease": c.key("LArm", f, v, k)
+    L(0, [10, 0, -10, 0, 0, 0])
+    L(14, [40, -12, -30, 0.06, 0.04, -0.12], "coil")  # out in front for balance as the body leans back
+    L(21, [42, -12, -32, 0.06, 0.04, -0.12], "slowin")
+    L(27, [-24, -8, -34, 0, 0, 0.1], "snap")  # swept back as the body folds
+    L(31, [-30, -8, -38, 0, 0, 0.12], "stop")
+    L(45, [-24, -6, -32, 0, 0, 0.1], "settle")
+    L(56, [-24, -6, -32, 0, 0, 0.1], "drift")
+    G = lambda leg, f, v, k="ease": c.key(leg, f, v, k)
+    G("RLeg", 0, [8, 0, 4, 0, 0, 0])
+    G("LLeg", 0, [-8, 0, -4, 0, 0, 0])
+    G("RLeg", 14, [70, 0, 8, 0, 0, 0], "coil")  # knees tucked
+    G("LLeg", 14, [60, 0, -8, 0, 0, 0], "coil")
+    G("RLeg", 21, [74, 0, 8, 0, 0, 0], "slowin")
+    G("LLeg", 21, [64, 0, -8, 0, 0, 0], "slowin")
+    G("RLeg", 31, [10, 0, 8, 0, 0, 0], "snap")  # legs drop under the body to land
+    G("LLeg", 31, [48, 0, -6, 0, 0, 0], "snap")
+    G("RLeg", 45, [14, 0, 6, 0, 0, 0], "settle")
+    G("LLeg", 45, [44, 0, -6, 0, 0, 0], "settle")
+    G("RLeg", 56, [14, 0, 6, 0, 0, 0], "drift")
+    G("LLeg", 56, [44, 0, -6, 0, 0, 0], "drift")
+    return c
+
+
+EXTRA = [running_attack, aerial_attack]
 
 # --------------------------------------------------------------------------- idle
 IDLE_FRAMES = 125  # 2.083s, one breath per loop, like the reference idles
@@ -648,7 +817,7 @@ def add_sword(rig):
 
 
 def build(rig_source, out_dir=HERE):
-    clips = [idle(), unsheathe()] + [m() for m in M1S]
+    clips = [idle(), unsheathe()] + [m() for m in M1S] + [m() for m in EXTRA]
     sequences, by_name, data = [], {}, {}
     for c in clips:
         c, baked = _baked(c)

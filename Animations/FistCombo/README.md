@@ -9,6 +9,8 @@ These five M1 animations are built to match the style of the reference animation
 | `m1-3` | Lead hook (left hand), wide flat arc that wraps across the face, body tilts into it | 0.83s | 0.40s |
 | `m1-4` | Finisher: lead uppercut (left hand), sinks low, then explodes up and back | 0.83s | 0.42s |
 | `m1-5` | Spinning backfist (right hand), 330° pirouette, lands side-on and holds. Not in the string. | 1.00s | 0.65s |
+| `running attack` | Off a sprint: the left foot plants long and the body winds, then a right cross drives through as the torso whips round into a deep lunge with the rear leg trailing. **Keys the legs.** | 0.90s | 0.37s |
+| `aerial attack` | In the air: knees tuck up and the fist cocks over the head, then the body dives forward through a hammering downward punch as the legs kick out behind. Built to spike a target. **Keys the legs.** | 0.90s | 0.43s |
 | `m1 string (1,2,1,2,4)` | The full string (jab, overhand, jab, overhand, uppercut) in one clip, for previewing | 3.20s | 0.33, 0.88, 1.37, 1.92, 2.48s |
 
 All five are R6, Priority **Action**, not looped, and baked at 60 fps with Linear easing, exactly like the references. The legs are keyed at **Weight 0**, as in the reference M1s, so your walk and idle keep driving them. Each clip has a `Hit` KeyframeMarker on its impact frame:
@@ -24,6 +26,7 @@ track:GetMarkerReachedSignal("Hit"):Connect(function() ... end)
 - `previews/key_poses.png`: start, coil, load, impact, overshoot and held pose for every hit.
 - `previews/compare_realtime.gif`: the reference fist m1-1 next to all five hits, in real time.
 - `previews/m1_string.gif`: the `m1 string (1,2,1,2,4)` clip in real time.
+- `previews/running_aerial_attacks.gif` / `running_aerial_key_poses.png`: the running and aerial attacks.
 - `generate_combo.py`: the source that bakes all of the above. The shared machinery (curves, smoothing, R6 conversion, export) is in `../animkit.py`.
 - `../style_profiles.json`: curves measured from the reference, shared with the sword set.
 

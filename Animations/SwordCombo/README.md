@@ -9,6 +9,8 @@ An idle, an unsheathe and a 1, 2, 1, 2, finisher M1 string for a one-handed swor
 | `m1-1` | Forehand: cocks the sword behind the right shoulder, then cuts over the top from high right to low left. | 0.83s | `Hit` at 0.43s |
 | `m1-2` | Backhand: cocks the sword over the left shoulder, then cuts back across from high left to low right and follows through round to the right side, with the off hand down by the side. | 0.83s | `Hit` at 0.45s |
 | `m1-3` | Finisher: a lunging stab. It draws the sword back by the right side with the point toward the target and the off hand aiming, then drives a dead-straight thrust and holds the lunge. | 1.10s | `Hit` at 0.53s |
+| `running attack` | Off a sprint with the blade trailing low behind: the left foot plants and the body winds, then one flat sweep goes round the right side and across the front at waist height into a deep lunge. **Keys the legs.** | 0.90s | `Hit` at 0.50s |
+| `aerial attack` | In the air: rises with the knees tucked and the sword cocked behind the head, then cleaves over the top and down through the target as the body folds forward and the legs drop to land. **Keys the legs.** | 0.93s | `Hit` at 0.52s |
 | `m1 string (1,2,1,2,3)` | m1-1, m1-2, m1-1, m1-2, m1-3 in one clip, to preview the whole string. | 3.77s | `Hit` on all five impacts |
 
 Every clip is baked at 60 fps with Linear easing and Priority **Action**, the same as the references.
@@ -20,7 +22,7 @@ Every clip is baked at 60 fps with Linear easing and Priority **Action**, the sa
 - **Sword parts:** the blade, fuller, crossguard, pommel and a two-wedge point are welded to `Handle`. It's about 4.25 studs from the grip to the tip.
 - **Scabbard:** welded to the Torso. The hilt sits at the front of the left hip and the scabbard runs back and down along the outside of the left thigh.
 - **Physics:** no part collides and every part is massless.
-- **Legs:** every clip keys the legs at Weight 0, so your walk (or whatever else is playing) drives them.
+- **Legs:** every clip keys the legs at Weight 0, so your walk (or whatever else is playing) drives them. The exceptions are the running and aerial attacks, which drive the legs themselves.
 
 To use it on your own character, copy the `Sword` model, the `Handle` Motor6D and the `Scabbard` model over. Then set the Motor6D's `Part0` to your character's Right Arm and the scabbard welds' `Part0` to its Torso.
 
@@ -31,6 +33,10 @@ To use it on your own character, copy the `Sword` model, the `Handle` Motor6D an
 3. **Unsheathe:** until the `Sheathe/Unsheathe` marker, the animation holds the sword in the scabbard by itself. If you show a separate sheathed sword while unequipped, swap it for the real one on that marker.
 4. **M1s:** cancel each hit into the next about 0.15s after its `Hit` (m1-1 at 0.58s, m1-2 at 0.60s). Play every hit with `track:Play(0.15)` so the blend matches the string preview.
 5. **Legs:** no clip drives the legs. The finisher's lunge drops the torso 0.5 studs, so with the walk driving the legs, the feet dip that far below the floor during the lunge.
+
+## Flying the sword in world space
+
+The running and aerial attacks fly the sword along curves in world space: one for the fist around the body, and one for the blade with its edge turned into the cut. The arm and the wrist (`Handle`) are solved for every frame from those curves, so the sweep stays a clean arc whatever the torso and legs are doing. The speed along each curve follows the reference whip.
 
 ## The stab and the wrist
 
@@ -71,6 +77,7 @@ The sword clips were checked against those numbers. Tip speed is compared in bla
 | Backhand tip speed | 45.2 blade lengths/s (kareemandbeast m1-2) | 53.7 (m1-2, with a longer follow-through) |
 | Sword arm peak | 1,480–2,530°/s | 1,530–2,080°/s |
 | Draw tip speed | 88 studs/s (equip) | 97 studs/s (unsheathe) |
+| Running / aerial tip speed | 45–61.5 blade lengths/s | 66.5 / 60.8 |
 | Hit after tip peak | 1–3 frames | 1–3 frames |
 
 ## Smoothness
@@ -92,6 +99,7 @@ The idle is built directly from smooth breathing waves, so it isn't smoothed.
 - `previews/key_poses.png`: the key poses of every clip, with the blade tip's path.
 - `previews/m1_string.gif`: the string, in real time.
 - `previews/unsheathe_idle.gif`: the unsheathe, then one loop of the idle.
+- `previews/running_aerial_attacks.gif` / `running_aerial_key_poses.png`: the running and aerial attacks.
 - `generate_sword.py`: the source for all of the above.
 - `sword_data.json`: the baked channels.
 

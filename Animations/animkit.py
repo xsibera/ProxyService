@@ -173,6 +173,15 @@ def euler_from_matrix(r, prev=None):
     return best[1]
 
 
+def world_leg(leg, root, pitch, roll=0.0, yaw=0.0):
+    """Leg channels that point a leg along a world-space swing for given Root channels: pitch swings
+    it forward (+) or back, roll lifts it out to its own side, yaw (deg) turns it about the vertical.
+    The legs then stay aimed where the body is travelling whatever the torso does."""
+    side = 1 if leg == "RLeg" else -1
+    rel = euler_yxz(*root[:3]).T @ euler_yxz(pitch, yaw, side * roll)
+    return euler_from_matrix(rel) + [0.0, 0.0, 0.0]
+
+
 def _slerp_channels(a, b, u, prev):
     qa, qb = _quat(euler_yxz(*a[:3])), _quat(euler_yxz(*b[:3]))
     if np.dot(qa, qb) < 0:

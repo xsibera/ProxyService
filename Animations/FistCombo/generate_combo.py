@@ -35,10 +35,12 @@ from animkit import (  # noqa: E402
     reference_rig,
     rest_pose,
     sequence_xml,
+    world_leg,
 )
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 JOINTS = list(UPPER)
+FULL = UPPER + ("RLeg", "LLeg")  # moves that are allowed to drive the legs
 
 
 # --------------------------------------------------------------------------- the combo
@@ -262,7 +264,120 @@ def m1_5():
     return c
 
 
-CLIPS = [m1_1, m1_2, m1_3, m1_4, m1_5]
+def running_attack():
+    """Off a sprint: the left foot plants long, the body sits back and winds, then drives a right
+    cross through the target as the torso whips round and drops into a deep lunge, rear leg
+    trailing. Keys the legs (world-aimed, so the stride stays along the run)."""
+    c = Clip("running attack", 54, hit=22, arm="RArm", joints=FULL)
+    run = [-18, 0, 0, 0, -0.2, 0]
+    coil = [-8, -45, 6, 0, -0.38, 0.25]
+    lunge = [-26, 70, -8, 0, -0.74, -0.62]
+    held = [-20, 58, -5, 0, -0.66, -0.5]
+    R = lambda f, v, k="ease": c.key("Root", f, v, k)
+    R(0, run)
+    R(10, coil, "coil")
+    R(26, lunge, "whip")
+    R(42, held, "settle")
+    R(54, [-21, 60, -5, 0, -0.67, -0.5], "drift")
+    N = lambda f, v, k="ease": c.key("Neck", f, v, k)
+    N(0, [-10, 0, 0])
+    N(10, [-12, 0, -4], "coil")
+    N(22, [-16, 0, 8], "snap")
+    N(26, [-18, 0, 10], "stop")
+    N(42, [-14, 0, 7], "settle")
+    N(54, [-15, 0, 7], "drift")
+    # the cross: from the run swing, chambered at the hip, then out of the side toward the target
+    Rr = lambda f, v, k="ease": c.key("RArm", f, v, k)
+    Rr(0, [-45, 0, 8, 0, 0, 0])
+    Rr(4, [-34, 6, 12, 0.02, 0.06, 0.1])
+    Rr(10, [-22, 20, 30, 0.1, 0.24, 0.6], "coil")
+    Rr(17, [-26, 24, 36, 0.12, 0.3, 0.7], "slowin")
+    Rr(22, [30, 10, 97, 0.58, -0.08, -0.26], "armstrike")
+    Rr(24, [16, 4, 92, 0.72, -0.14, -0.34], "stop")  # reaches further than a standing cross
+    Rr(27, [19, 7, 97, 0.64, -0.16, -0.2], "ease")
+    Rr(42, [12, 3, 94, 0.54, -0.16, 0.02], "settle")
+    Rr(54, [13, 2, 95, 0.56, -0.15, -0.02], "drift")
+    L = lambda f, v, k="ease": c.key("LArm", f, v, k)
+    L(0, [45, 0, -8, 0, 0, 0])
+    L(10, [56, -36, -40, 0.26, 0.2, -0.6], "coil")  # reaches for the target as the body winds
+    L(17, [60, -40, -44, 0.26, 0.22, -0.64], "slowin")
+    L(22, [26, -10, -52, 0.34, -0.27, 0.58], "snap")  # yanked back to the hip
+    L(26, [18, -8, -50, 0.36, -0.3, 0.62], "stop")
+    L(42, [18, -10, -55, 0.34, -0.3, 0.6], "settle")
+    L(54, [17, -12, -55, 0.33, -0.31, 0.61], "drift")
+    # legs: mid-stride -> left foot swings through and plants long -> lunge with the rear leg trailing
+    for f, root, k, right, left in (
+        (0, run, "ease", (32, 4), (-28, 4)),
+        (10, coil, "coil", (-12, 5), (34, 6)),
+        (26, lunge, "whip", (-55, 7), (50, 8)),
+        (42, held, "settle", (-50, 6), (46, 7)),
+    ):
+        twist = 0.4 * root[1]  # the hips follow the torso a little, the feet stay on the run line
+        c.key("RLeg", f, world_leg("RLeg", root, right[0], right[1], twist), k)
+        c.key("LLeg", f, world_leg("LLeg", root, left[0], left[1], twist), k)
+    return c
+
+
+def aerial_attack():
+    """In the air: tucks the knees up and leans back with the right fist cocked over the head, holds
+    it loaded, then dives forward and down through a hammering downward punch as the legs kick out
+    behind. Built to spike a target toward the ground."""
+    c = Clip("aerial attack", 54, hit=26, arm="RArm", joints=FULL)
+    air = [-5, 0, 0, 0, 0, 0]
+    tuck = [22, -30, 8, 0, 0.35, 0.3]
+    load = [24, -34, 9, 0, 0.38, 0.32]
+    dive = [-48, 25, -10, 0, -0.45, -0.45]
+    held = [-40, 20, -6, 0, -0.35, -0.35]
+    R = lambda f, v, k="ease": c.key("Root", f, v, k)
+    R(0, air)
+    R(14, tuck, "coil")
+    R(20, load, "slowin")
+    R(30, dive, "snap")
+    R(44, held, "settle")
+    R(54, [-41, 21, -6, 0, -0.36, -0.36], "drift")
+    N = lambda f, v, k="ease": c.key("Neck", f, v, k)
+    N(0, [-6, 0, 0])
+    N(14, [-24, 0, -4], "coil")  # eyes down on the target past the knees
+    N(20, [-26, 0, -4], "slowin")
+    N(26, [10, 0, 6], "snap")  # head comes up against the dive
+    N(30, [16, 0, 8], "stop")
+    N(44, [12, 0, 6], "settle")
+    N(54, [13, 0, 6], "drift")
+    Rr = lambda f, v, k="ease": c.key("RArm", f, v, k)
+    Rr(0, [10, 0, 10, 0, 0, 0])
+    Rr(4, [36, 10, 30, 0.0, 0.06, -0.1])
+    Rr(14, [160, 20, 40, -0.2, 0.4, 0.4], "coil")  # cocked straight up behind the head
+    Rr(20, [168, 24, 44, -0.2, 0.45, 0.5], "slowin")
+    Rr(26, [88, 4, 14, 0.1, -0.2, -0.6], "armstrike")  # hammers down and forward
+    Rr(29, [78, 0, 12, 0.12, -0.32, -0.72], "stop")
+    Rr(32, [84, 2, 14, 0.1, -0.28, -0.64], "ease")
+    Rr(44, [86, 4, 15, 0.1, -0.26, -0.6], "settle")
+    Rr(54, [85, 4, 15, 0.1, -0.26, -0.6], "drift")
+    L = lambda f, v, k="ease": c.key("LArm", f, v, k)
+    L(0, [10, 0, -10, 0, 0, 0])
+    L(14, [70, -20, -20, 0.2, 0.1, -0.4], "coil")  # aims down at the target
+    L(20, [74, -22, -22, 0.2, 0.12, -0.42], "slowin")
+    L(26, [-30, -20, -60, 0.1, 0.1, 0.4], "snap")  # thrown back for balance
+    L(30, [-38, -22, -66, 0.12, 0.12, 0.44], "stop")
+    L(44, [-30, -20, -60, 0.1, 0.1, 0.4], "settle")
+    L(54, [-31, -20, -61, 0.1, 0.1, 0.41], "drift")
+    G = lambda leg, f, v, k="ease": c.key(leg, f, v, k)
+    G("RLeg", 0, [10, 0, 4, 0, 0, 0])
+    G("LLeg", 0, [-10, 0, -4, 0, 0, 0])
+    G("RLeg", 14, [72, 0, 8, 0, 0, 0], "coil")  # knees up
+    G("LLeg", 14, [62, 0, -8, 0, 0, 0], "coil")
+    G("RLeg", 20, [76, 0, 8, 0, 0, 0], "slowin")
+    G("LLeg", 20, [66, 0, -8, 0, 0, 0], "slowin")
+    G("RLeg", 30, [-36, 0, 10, 0, 0, 0], "snap")  # kicked out behind with the dive
+    G("LLeg", 30, [-22, 0, -14, 0, 0, 0], "snap")
+    G("RLeg", 44, [-30, 0, 8, 0, 0, 0], "settle")
+    G("LLeg", 44, [-16, 0, -10, 0, 0, 0], "settle")
+    G("RLeg", 54, [-30, 0, 8, 0, 0, 0], "drift")
+    G("LLeg", 54, [-17, 0, -10, 0, 0, 0], "drift")
+    return c
+
+
+CLIPS = [m1_1, m1_2, m1_3, m1_4, m1_5, running_attack, aerial_attack]
 
 # --------------------------------------------------------------------------- full-string preview
 # Every hit is cancelled into the next one this long after it starts (about 0.15s after its
@@ -281,7 +396,7 @@ def build(rig_source=None, out_dir=HERE):
     for make in CLIPS:
         clip = make()
         baked = clip.bake()
-        baked_all[clip.name] = {"hit": clip.hit, "frames": clip.frames, "channels": {j: baked[j].tolist() for j in JOINTS}}
+        baked_all[clip.name] = {"hit": clip.hit, "frames": clip.frames, "channels": {j: baked[j].tolist() for j in clip.joints}}
         frames = clip_transforms(clip, baked)
         by_name[clip.name] = (clip, frames)
         print("%s: strike sigma %.2f, jerk cut x%.2f" % ((clip.name,) + clip.smoothing))
