@@ -136,10 +136,11 @@ Killua moves like the assassin he is: low and loose, hands open like claws, and 
 | `Killua Counter` | 0.9s | After the blink behind the attacker: a rising claw, a spinning heel kick and a double palm. **Hits** at 7, 15 and 26/60s. |
 | `Killua Dash 1 / 2 / 3` | 0.45 / 0.45 / 0.6s | Arriving low out of the teleport and striking at once: a right claw, a left claw back the other way, then a lunging double palm. **Hits** at 6, 6 and 7/60s. |
 
-Every clip keys the legs: these are committed attacks, so the walk doesn't drive them. The legs follow your reference ability animations (ice downslam, leg sweep):
-- **Turning with the body:** the feet are placed relative to the hips, not pinned to the floor. When the torso whips round, the stance pivots with it.
-- **No crossing:** each foot stays in its own lane under its own hip, so the legs never cross. A low stance is faked the way the reference does it, by sliding the legs up into the hips.
-- **Checked:** the build fails if any frame brings the feet closer than 0.9 studs side to side (the reference never goes under 0.96).
+Every clip keys the legs: these are committed attacks, so the walk doesn't drive them. The legs are done the way your ice downslam does them (measured from it frame by frame):
+- **Feet:** planted at hip width and staggered front and back, not splayed wide. They stay where they're planted while the torso turns above them.
+- **Depth:** the body gets low by sliding the legs up into the hips (your bent-knee trick), so the front leg stays almost upright under the body.
+- **The big moment:** only then does the back leg stretch out long behind, as in your slam.
+- **Checked:** the build fails if any frame brings the feet within 0.9 studs of each other side to side (yours: 0.96+), or if both feet are on the floor with neither leg near upright (25°; yours never lean past 24°).
 
 Key poses:
 
