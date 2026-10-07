@@ -31,11 +31,11 @@ track:GetMarkerReachedSignal("Hit"):Connect(function() ... end)
 
 1. In Studio, right-click Workspace → **Insert from File…** → `FistCombo.rbxm`.
 2. Select **Fist Combo Rig** and open the **Animation Editor**. The clips are under *Load* (`m1-1` … `m1-5`). Load `m1 string (1,2,1,2,3)` to watch the whole string in one go.
-3. Publish each clip (**… → Publish to Roblox**) and put the IDs in your M1 handler. Each hit is meant to be cancelled into the next one, usually 0.45–0.6s after it starts. The final pose is held until the clip ends, the same as the references.
+3. Publish each clip (**… → Publish to Roblox**) and put the IDs in your M1 handler. Each hit is meant to be cancelled into the next one, usually 0.45–0.6s after it starts. Play each one with `track:Play(0.15)` so the blend matches the string preview. The final pose is held until the clip ends, the same as the references.
 
 ## The string preview
 
-The M1 string is **m1-1, m1-2, m1-1, m1-2, m1-3**: jab, overhand, jab, overhand, then the hook as the finisher. `m1 string (1,2,1,2,3)` bakes it into one clip, the same way the Animator would play it in game. Each hit is cut about 0.15s after its impact (m1-1 at 0.48s, m1-2 at 0.55s) and crossfades into the next one over 0.1s. The hook plays out in full, then fades back to the rest pose over 0.3s. Every impact has its own `Hit` marker. It is only for previewing; in game, play the separate clips.
+The M1 string is **m1-1, m1-2, m1-1, m1-2, m1-3**: jab, overhand, jab, overhand, then the hook as the finisher. `m1 string (1,2,1,2,3)` bakes it into one clip, the same way the Animator would play it in game. Each hit is cut about 0.15s after its impact (m1-1 at 0.48s, m1-2 at 0.55s) and crossfades into the next one over 0.15s. The hook plays out in full, then fades back to the rest pose over 0.3s. Every impact has its own `Hit` marker. It is only for previewing; in game, play the separate clips.
 
 ## What the reference style is (measured, not guessed)
 
@@ -61,9 +61,24 @@ The combo uses those exact curves (coil, whip, settle, drift, plus slices of the
 
 | Joint | Reference (°/s) | This combo (°/s) |
 |---|---|---|
-| Torso | 1,600–2,100 | 1,570–2,530 |
-| Head | 1,200–1,700 | 1,290–2,490 |
-| Punching arm | 1,500–2,800 | 1,210–2,210 |
+| Torso | 1,600–2,100 | 1,420–2,300 |
+| Head | 1,200–1,700 | 1,050–1,780 |
+| Punching arm | 1,500–2,800 | 1,060–2,180 |
+
+## Smoothing
+
+On their own, the keyed curves ease in and out at every key, which made the arms hitch during the coil and the settle. After baking, the generator runs a Gaussian over every curve. It is wide (sigma 2 frames) away from the strike and narrows around each joint's whip, so the punch keeps its snap. The torso and the punching arm get the lightest smoothing that halves the clip's angular jerk. The off hand and the head are always smoothed harder.
+
+| Clip | Angular jerk before | After | Smoother by |
+|---|---|---|---|
+| `m1-1` | 2,348k°/s³ | 1,021k°/s³ | 2.30x |
+| `m1-2` | 2,782k°/s³ | 1,301k°/s³ | 2.14x |
+| `m1-3` | 1,214k°/s³ | 594k°/s³ | 2.04x |
+| `m1-4` | 2,296k°/s³ | 1,147k°/s³ | 2.00x |
+| `m1-5` | 1,352k°/s³ | 613k°/s³ | 2.20x |
+| string | 2,871k°/s³ | 1,294k°/s³ | 2.22x |
+
+For comparison, the reference fist M1 is 1,552k°/s³. Change the target with `SMOOTHNESS` in `generate_combo.py`.
 
 ## Changing it
 

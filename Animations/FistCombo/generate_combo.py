@@ -74,12 +74,14 @@ def curve(name, u):
 
 # --------------------------------------------------------------------------- clip authoring
 class Clip:
-    def __init__(self, name, frames, hit):
+    def __init__(self, name, frames, hit, arm):
         self.name = name
         self.frames = frames  # last frame index
         self.hit = hit  # frame of the "Hit" marker
+        self.arm = arm  # the striking arm ("RArm" / "LArm")
         self.keys = {j: [] for j in JOINTS}
         self.neck_auto = True
+        self.smoothing = None  # (strike sigma, jerk reduction) once baked
 
     def key(self, joint, frame, vals, curve_in="ease"):
         v = list(vals) + [0.0] * (6 - len(vals))
@@ -120,7 +122,79 @@ class Clip:
             for i in range(1, len(target)):
                 follow[i] = follow[i - 1] + (target[i] - follow[i - 1]) * alpha
             out["Neck"][:, 1] += follow
-        return out
+        return smooth(self, out)
+
+
+# --------------------------------------------------------------------------- smoothing
+# Every keyed segment eases in and out on its own, so on their own the arms hitch at each key.
+# This pass runs a Gaussian over the baked curves: wide through the coil, settle and drift, and
+# narrow around each joint's whip so the strike keeps its snap. The torso and the striking arm get
+# the lightest smoothing that cuts the clip's angular jerk by SMOOTHNESS; the off hand and the head
+# don't need the snap, so they are always smoothed harder.
+SMOOTHNESS = 2.0  # angular jerk of the raw keyed curves / angular jerk of the output
+SMOOTH_FAR = 2.0  # Gaussian sigma (frames) away from the whip
+SMOOTH_NEAR = {"off": 1.8, "neck": 1.4}  # sigma at the whip for the off hand and the head
+SMOOTH_WIDTH = 3.0  # frames over which sigma narrows into the whip
+
+
+def _rotvec(r):
+    c = max(-1.0, min(1.0, (np.trace(r) - 1) / 2))
+    th = math.acos(c)
+    if th < 1e-9:
+        return np.zeros(3)
+    v = np.array([r[2, 1] - r[1, 2], r[0, 2] - r[2, 0], r[1, 0] - r[0, 1]]) / (2 * math.sin(th))
+    return v * th
+
+
+def _angular_velocity(ch):
+    """Per-frame angular velocity vectors (rad/s, parent space) of a channel track."""
+    rs = [euler_yxz(*row[:3]) for row in ch]
+    return np.array([rs[i] @ _rotvec(rs[i - 1].T @ rs[i]) * FPS for i in range(1, len(rs))])
+
+
+def angular_speed(ch):
+    w = np.linalg.norm(_angular_velocity(ch), axis=1) * 180 / math.pi
+    return np.concatenate([w[:1], w])
+
+
+def angular_jerk(tracks):
+    """RMS angular jerk (deg/s^3) over all joints of a clip."""
+    total = 0.0
+    for ch in tracks.values():
+        jk = np.diff(_angular_velocity(ch), n=2, axis=0) * FPS * FPS
+        total += (np.linalg.norm(jk, axis=1) ** 2).mean()
+    return math.sqrt(total) * 180 / math.pi
+
+
+def _gauss_varying(ch, sigma):
+    n = len(ch)
+    out = np.empty_like(ch)
+    for i in range(n):
+        r = max(1, int(math.ceil(3 * sigma[i])))
+        idx = np.clip(np.arange(i - r, i + r + 1), 0, n - 1)
+        w = np.exp(-0.5 * (np.arange(-r, r + 1) / sigma[i]) ** 2)
+        out[i] = (w / w.sum()) @ ch[idx]
+    return out
+
+
+def smooth(clip, raw):
+    lo, hi = max(0, clip.hit - 8), clip.hit + 3
+    off = "LArm" if clip.arm == "RArm" else "RArm"
+    fixed = {"Neck": SMOOTH_NEAR["neck"], off: SMOOTH_NEAR["off"]}
+    f = np.arange(len(raw["Root"]))
+    centre = {j: lo + int(np.argmax(angular_speed(raw[j])[lo:hi])) for j in JOINTS}
+    base = angular_jerk(raw)
+    for strike in np.arange(0.3, 1.501, 0.05):
+        out = {}
+        for j in JOINTS:
+            near = fixed.get(j, strike)
+            sig = SMOOTH_FAR - (SMOOTH_FAR - near) * np.exp(-0.5 * ((f - centre[j]) / SMOOTH_WIDTH) ** 2)
+            out[j] = _gauss_varying(raw[j], sig)
+        factor = base / angular_jerk(out)
+        if factor >= SMOOTHNESS:
+            break
+    clip.smoothing = (round(float(strike), 2), factor)
+    return out
 
 
 def mirror(v):
@@ -132,7 +206,7 @@ def mirror(v):
 # --------------------------------------------------------------------------- the combo
 def m1_1():
     """Lead (left) snap jab: short coil, fastest whip, aimed high."""
-    c = Clip("m1-1", 50, hit=20)
+    c = Clip("m1-1", 50, hit=20, arm="LArm")
     R = lambda f, v, k="ease": c.key("Root", f, v, k)
     R(0, [-4, -12, 0.4, 0, -0.24, 0])
     R(10, [4, 46, -5, 0, -0.28, 0.28], "coil")
@@ -174,7 +248,7 @@ def m1_1():
 
 def m1_2():
     """Rear (right) overhand: chambers high behind the head, drops over the top, deep lean."""
-    c = Clip("m1-2", 50, hit=24)
+    c = Clip("m1-2", 50, hit=24, arm="RArm")
     R = lambda f, v, k="ease": c.key("Root", f, v, k)
     R(0, [-4, 13, -0.3, 0, -0.24, 0])
     R(13, [8, -68, 7, 0, -0.27, 0.38], "coil")
@@ -216,7 +290,7 @@ def m1_2():
 def m1_3():
     """Lead (left) hook: arm cocked back at shoulder height, rips across in a flat arc and finishes
     across the face (fist in front of the opposite shoulder), body tilting into it."""
-    c = Clip("m1-3", 50, hit=24)
+    c = Clip("m1-3", 50, hit=24, arm="LArm")
     R = lambda f, v, k="ease": c.key("Root", f, v, k)
     R(0, [-4, -10, 0.5, 0, -0.24, 0])
     R(13, [6, 64, 12, 0, -0.3, 0.3], "coil")
@@ -257,7 +331,7 @@ def m1_3():
 
 def m1_4():
     """Rear (right) uppercut: sinks low and forward, then explodes up and back on the rising fist."""
-    c = Clip("m1-4", 50, hit=25)
+    c = Clip("m1-4", 50, hit=25, arm="RArm")
     R = lambda f, v, k="ease": c.key("Root", f, v, k)
     R(0, [-4, 12, -0.4, 0, -0.24, 0])
     R(14, [-24, -56, 14, 0, -0.66, 0.24], "coil")
@@ -300,7 +374,7 @@ def m1_4():
 def m1_5():
     """Finisher: spinning backfist. Coils, pirouettes 330 deg clockwise with the right arm flung out,
     and lands the back of the fist side-on, then holds the pose longer."""
-    c = Clip("m1-5", 60, hit=39)
+    c = Clip("m1-5", 60, hit=39, arm="RArm")
     R = lambda f, v, k="ease": c.key("Root", f, v, k)
     R(0, [-4, -10, 0.4, 0, -0.24, 0])
     R(16, [6, 44, 12, 0, -0.44, 0.32], "coil")
@@ -446,11 +520,11 @@ def sequence_xml(name, frames, hit_frames, loop=False):
 
 # --------------------------------------------------------------------------- full-string preview
 # Every hit is cancelled into the next one this long after it starts (about 0.15s after its
-# impact), crossfading over STRING_FADE like AnimationTrack:Play(0.1) does in game.
+# impact), crossfading over STRING_FADE (use AnimationTrack:Play(0.15) in game for the same blend).
 STRING_NAME = "m1 string (1,2,1,2,3)"
 STRING_ORDER = ["m1-1", "m1-2", "m1-1", "m1-2", "m1-3"]
 STRING_CANCEL = {"m1-1": 0.48, "m1-2": 0.55, "m1-3": 0.55, "m1-4": 0.58}
-STRING_FADE = 0.1
+STRING_FADE = 0.15
 STRING_END_FADE = 0.3
 
 
@@ -504,6 +578,11 @@ def _blend(a, b, w):
 REST = {j: ((0.0, 0.0, 0.0), np.eye(3)) for j in JOINTS}
 
 
+def _smoothstep(u):
+    u = min(1.0, max(0.0, u))
+    return u * u * (3 - 2 * u)
+
+
 def build_string(clips):
     """clips: list of (clip, frames) in combo order -> (frames, hit frame indices)."""
     starts, t = [], 0.0
@@ -525,11 +604,11 @@ def build_string(clips):
             if t < starts[i]:
                 break
             local = t - starts[i]
-            w = min(1.0, local / STRING_FADE) if i > 0 else 1.0
+            w = _smoothstep(local / STRING_FADE) if i > 0 else 1.0
             pose_now = _blend(pose_now, sample(frames, local), w)
         tail = t - (starts[-1] + last_clip.frames / FPS)
         if tail > 0:
-            pose_now = _blend(pose_now, REST, min(1.0, tail / STRING_END_FADE))
+            pose_now = _blend(pose_now, REST, _smoothstep(tail / STRING_END_FADE))
         out.append(pose_now)
     hits = {int(round((starts[i] + clip.hit / FPS) * FPS)) for i, (clip, _) in enumerate(clips)}
     return out, hits
@@ -545,6 +624,7 @@ def build(rig_source=None, out_dir=HERE):
         baked_all[clip.name] = {"hit": clip.hit, "frames": clip.frames, "channels": {j: baked[j].tolist() for j in JOINTS}}
         frames = clip_transforms(clip, baked)
         by_name[clip.name] = (clip, frames)
+        print("%s: strike sigma %.2f, jerk cut x%.2f" % ((clip.name,) + clip.smoothing))
         sequences.append(sequence_xml(clip.name, frames, {clip.hit}))
     # always ship the whole string as one animation so the combo can be previewed in one go
     string_frames, string_hits = build_string([by_name[n] for n in STRING_ORDER])
