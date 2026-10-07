@@ -447,7 +447,8 @@ def sequence_xml(name, frames, hit_frames, loop=False):
 # --------------------------------------------------------------------------- full-string preview
 # Every hit is cancelled into the next one this long after it starts (about 0.15s after its
 # impact), crossfading over STRING_FADE like AnimationTrack:Play(0.1) does in game.
-STRING_NAME = "m1 string (all 5)"
+STRING_NAME = "m1 string (1,2,1,2,3)"
+STRING_ORDER = ["m1-1", "m1-2", "m1-1", "m1-2", "m1-3"]
 STRING_CANCEL = {"m1-1": 0.48, "m1-2": 0.55, "m1-3": 0.55, "m1-4": 0.58}
 STRING_FADE = 0.1
 STRING_END_FADE = 0.3
@@ -537,16 +538,16 @@ def build_string(clips):
 def build(rig_source=None, out_dir=HERE):
     baked_all = {}
     sequences = []
-    chain = []
+    by_name = {}
     for make in CLIPS:
         clip = make()
         baked = clip.bake()
         baked_all[clip.name] = {"hit": clip.hit, "frames": clip.frames, "channels": {j: baked[j].tolist() for j in JOINTS}}
         frames = clip_transforms(clip, baked)
-        chain.append((clip, frames))
+        by_name[clip.name] = (clip, frames)
         sequences.append(sequence_xml(clip.name, frames, {clip.hit}))
     # always ship the whole string as one animation so the combo can be previewed in one go
-    string_frames, string_hits = build_string(chain)
+    string_frames, string_hits = build_string([by_name[n] for n in STRING_ORDER])
     sequences.append(sequence_xml(STRING_NAME, string_frames, string_hits))
     json.dump(baked_all, open(os.path.join(out_dir, "combo_data.json"), "w"))
 

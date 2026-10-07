@@ -9,7 +9,7 @@ These five M1 animations are built to match the style of the reference animation
 | `m1-3` | Lead hook (left hand), wide flat arc that wraps across the face, body tilts into it | 0.83s | 0.40s |
 | `m1-4` | Rear uppercut (right hand), sinks low, then explodes up and back | 0.83s | 0.42s |
 | `m1-5` | Finisher: spinning backfist (right hand), 330° pirouette, lands side-on and holds | 1.00s | 0.65s |
-| `m1 string (all 5)` | All five hits chained into one clip, to preview the whole string | 3.47s | 0.33, 0.88, 1.43, 2.00, 2.82s |
+| `m1 string (1,2,1,2,3)` | The full string (jab, overhand, jab, overhand, hook) in one clip, for previewing | 3.20s | 0.33, 0.88, 1.37, 1.92, 2.47s |
 
 All five are R6, Priority **Action**, not looped, and baked at 60 fps with Linear easing, exactly like the references. The legs are keyed at **Weight 0**, as in the reference M1s, so your walk and idle keep driving them. Each clip has a `Hit` KeyframeMarker on its impact frame:
 
@@ -19,23 +19,23 @@ track:GetMarkerReachedSignal("Hit"):Connect(function() ... end)
 
 ## Files
 
-- `FistCombo.rbxm`: the reference "normal player" rig, renamed **Fist Combo Rig**, with the five hits and the `m1 string (all 5)` preview in `AnimSaves`.
+- `FistCombo.rbxm`: the reference "normal player" rig, renamed **Fist Combo Rig**, with the five hits and the `m1 string (1,2,1,2,3)` preview in `AnimSaves`.
 - `FistCombo.rbxmx`: the same thing in XML.
 - `previews/key_poses.png`: start, coil, load, impact, overshoot and held pose for every hit.
 - `previews/compare_realtime.gif`: the reference fist m1-1 next to all five hits, in real time.
-- `previews/m1_string.gif`: the `m1 string (all 5)` clip in real time.
+- `previews/m1_string.gif`: the `m1 string (1,2,1,2,3)` clip in real time.
 - `generate_combo.py`: the source that bakes all of the above.
 - `style_profiles.json`: curves measured from the reference.
 
 ## Using it
 
 1. In Studio, right-click Workspace → **Insert from File…** → `FistCombo.rbxm`.
-2. Select **Fist Combo Rig** and open the **Animation Editor**. The clips are under *Load* (`m1-1` … `m1-5`). Load `m1 string (all 5)` to watch the whole string in one go.
+2. Select **Fist Combo Rig** and open the **Animation Editor**. The clips are under *Load* (`m1-1` … `m1-5`). Load `m1 string (1,2,1,2,3)` to watch the whole string in one go.
 3. Publish each clip (**… → Publish to Roblox**) and put the IDs in your M1 handler. Each hit is meant to be cancelled into the next one, usually 0.45–0.6s after it starts. The final pose is held until the clip ends, the same as the references.
 
 ## The string preview
 
-`m1 string (all 5)` is baked from the five clips, the same way the Animator would play them in game. Each hit is cut about 0.15s after its impact (m1-1 at 0.48s, m1-2 and m1-3 at 0.55s, m1-4 at 0.58s) and crossfades into the next one over 0.1s. The finisher plays out in full, then fades back to the rest pose over 0.3s. Every impact has its own `Hit` marker. It is only for previewing; in game, play the separate clips.
+The M1 string is **m1-1, m1-2, m1-1, m1-2, m1-3**: jab, overhand, jab, overhand, then the hook as the finisher. `m1 string (1,2,1,2,3)` bakes it into one clip, the same way the Animator would play it in game. Each hit is cut about 0.15s after its impact (m1-1 at 0.48s, m1-2 at 0.55s) and crossfades into the next one over 0.1s. The hook plays out in full, then fades back to the rest pose over 0.3s. Every impact has its own `Hit` marker. It is only for previewing; in game, play the separate clips.
 
 ## What the reference style is (measured, not guessed)
 
@@ -73,7 +73,7 @@ Edit the key poses in `generate_combo.py`, then run:
 python3 generate_combo.py path/to/ANIMSFORCLAUDE.rbxmx
 ```
 
-That rebuilds the five hits and the `m1 string (all 5)` preview. The cancel points are in `STRING_CANCEL`.
+That rebuilds the five hits and the string preview. The string's order is `STRING_ORDER` and its cancel points are `STRING_CANCEL`.
 
 Each key is `(frame, [pitch, yaw, roll, x, y, z], curve_into_this_key)` in the joint's parent space:
 - **Torso:** +yaw turns left, +pitch leans back.
