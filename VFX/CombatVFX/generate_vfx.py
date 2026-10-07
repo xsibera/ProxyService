@@ -86,7 +86,9 @@ def index_emitters(root):
 
 class Library:
     def __init__(self, path):
-        self.emitters = index_emitters(ET.parse(path).getroot())
+        root = ET.parse(path).getroot()
+        self.emitters = index_emitters(root)
+        self.trail = next(item for item in root.iter("Item") if item.get("class") == "Trail")
 
     def template(self, role):
         tex, hint = TEX[role]
@@ -257,6 +259,45 @@ class Layer:
         attrs.update(kw.get("flags", {}))
         set_attributes(e, attrs)
         return e
+
+
+class Trail:
+    """A swing trail: a copy of the reference Trail with no texture (a soft sheet that fades out).
+
+    transp, width: keys over the trail's length (0 = at the blade / fist, 1 = the oldest end)
+    attrs: where it sits, read by CombatVFX.Swing (blades: From / To along SwingBase -> SwingTip;
+    fists: Width across the knuckles), plus Accent.
+    """
+
+    def __init__(self, name, life, transp, width, face_camera=False, color="ffffff", attrs=None):
+        self.name, self.life, self.transp, self.width = name, life, transp, width
+        self.face_camera, self.color, self.attrs = face_camera, color, attrs or {}
+
+    def build(self, lib):
+        t = copy.deepcopy(lib.trail)
+        t.set("referent", ref())
+        props = t.find("Properties")
+        for el in list(props):
+            if el.get("name") in ("TextureContent", "Texture"):
+                props.remove(el)
+        _set_text(t, "string", "Name", self.name)
+        _set_text(t, "Ref", "Attachment0", "null")
+        _set_text(t, "Ref", "Attachment1", "null")
+        set_bool(t, "Enabled", False)
+        set_bool(t, "FaceCamera", self.face_camera)
+        set_float(t, "Lifetime", self.life)
+        set_float(t, "Brightness", 1)
+        set_float(t, "LightEmission", 0)
+        set_float(t, "LightInfluence", 0)
+        set_float(t, "MinLength", 0)
+        set_float(t, "MaxLength", 0)
+        set_float(t, "TextureLength", 1)
+        set_token(t, "TextureMode", 0)
+        set_color(t, self.color)
+        set_nseq(t, "Transparency", self.transp)
+        set_nseq(t, "WidthScale", self.width)
+        set_attributes(t, self.attrs)
+        return t
 
 
 def attachment(name, pos=(0, 0, 0), up=None, attrs=None):
@@ -564,8 +605,112 @@ def run_dust():
     return {"name": "RunDust", "layers": {"Ground": feet}, "continuous": True}
 
 
+# --------------------------------------------------------------------------- swings
+# Swing visualisation (CombatVFX.Swing): trails that follow the blade / fist while it moves fast, a wake
+# of air pulled along behind it, and a burst of air at the fastest point. The swing templates hold the
+# trails and a "Wake" attachment of continuous emitters (aimed along the travel every frame, so BACK
+# trails behind); their attributes are the speeds (studs/s, measured relative to the body) that switch
+# the trails on and off, picked from the M1 animations: sword slashes peak at 230-280 and their wind-ups
+# stay under 100; the stab peaks at 70 along the blade; punches peak at 75-125, the guard hand under 85.
+SHEET_FADE = [[0, 0.82, 0], [0.5, 0.9, 0], [1, 1, 0]]
+EDGE_FADE = [[0, 0.62, 0], [0.35, 0.8, 0], [1, 1, 0]]
+POINT_FADE = [[0, 0.5, 0], [0.3, 0.72, 0], [1, 1, 0]]
+
+
+def sword_swing():
+    """Sword M1s: a faint sheet over the blade's path, a stronger band along the edge and a line off the
+    point (the only part a stab leaves), with wisps and streaks of air pulled along behind the blade."""
+    trails = [
+        Trail("Sheet", 0.12, SHEET_FADE, [[0, 1, 0], [1, 0.6, 0]], attrs={"From": 0.05, "To": 1.0, "Accent": True}),
+        Trail("Edge", 0.17, EDGE_FADE, [[0, 1, 0], [1, 0.3, 0]], attrs={"From": 0.62, "To": 1.0, "Accent": True}),
+        Trail("Point", 0.22, POINT_FADE, [[0, 1, 0], [1, 0.15, 0]], face_camera=True,
+              attrs={"From": 0.9, "To": 1.0, "Accent": True}),
+    ]
+    wake = [
+        Layer("wind_swirl", "AirWisps", continuous=True, rate=70, life=(0.2, 0.35), size=1.6, dir=BACK, ori=CAM,
+              spread=(25, 25), speed=(2, 6), drag=6, rotspeed=(60, 160), color=WIND_LIGHT, transp=AIR_SOFT,
+              flags=ACCENT),
+        Layer("streak", "AirStreaks", continuous=True, rate=40, life=(0.08, 0.16), size=0.9, dir=BACK, spread=(10, 10),
+              speed=(15, 30), drag=10, color=WIND_LIGHT, transp=STREAK, z=1),
+    ]
+    attrs = {"Kind": "Blade", "OnSpeed": 120.0, "OffSpeed": 80.0, "ThrustSpeed": 45.0, "ThrustOffSpeed": 30.0,
+             "ThrustAlign": 0.85, "Burst": "SwordCut", "ThrustBurst": "SwordThrust", "BurstAlong": 0.8,
+             "BurstAhead": 0.0}
+    return {"name": "SwordSwing", "attrs": attrs, "trails": trails, "layers": {"Wake": wake},
+            "wake_attrs": {"Along": 0.85}}
+
+
+def fist_swing():
+    """Fist M1s: a soft streak behind the punching fist (only that one: the guard hand is left alone)
+    with wisps and streaks of air pulled along behind it."""
+    trails = [
+        Trail("Streak", 0.14, [[0, 0.72, 0], [0.4, 0.86, 0], [1, 1, 0]], [[0, 1, 0], [1, 0.35, 0]], face_camera=True,
+              attrs={"Width": 0.9, "Accent": True}),
+        Trail("Core", 0.1, [[0, 0.55, 0], [1, 1, 0]], [[0, 1, 0], [1, 0.2, 0]], face_camera=True,
+              attrs={"Width": 0.35, "Accent": True}),
+    ]
+    wake = [
+        Layer("wind_swirl", "AirWisps", continuous=True, rate=60, life=(0.18, 0.3), size=1.1, dir=BACK, ori=CAM,
+              spread=(25, 25), speed=(1, 4), drag=6, rotspeed=(60, 160), color=WIND_LIGHT, transp=AIR_SOFT,
+              flags=ACCENT),
+        Layer("streak", "AirStreaks", continuous=True, rate=35, life=(0.07, 0.14), size=0.7, dir=BACK, spread=(10, 10),
+              speed=(12, 24), drag=10, color=WIND_LIGHT, transp=STREAK, z=1),
+    ]
+    attrs = {"Kind": "Fist", "OnSpeed": 50.0, "OffSpeed": 35.0, "Burst": "FistPush", "BurstAlong": 0.0,
+             "BurstAhead": 0.6}
+    return {"name": "FistSwing", "attrs": attrs, "trails": trails, "layers": {"Wake": wake}}
+
+
+def sword_cut():
+    """Fired by SwordSwing at the fastest point of a slash, at the blade's last fifth. LookVector = the
+    blade's travel, UpVector = off the swing plane, so TOP + VelocityPerpendicular lies in the plane:
+    wind arcs and a swirl of air in the plane of the cut, and air streaks thrown on along it."""
+    cut = [
+        Layer("wind_arc", "WindArcs", count=2, life=(0.18, 0.3), size=5, dir=TOP, ori=VEL_PERP, spread=(0, 0),
+              speed=(0.1, 0.1), rotspeed=(150, 300), color=WIND_GREY, transp=AIR, le=0.4, br=1, flags=ACCENT),
+        Layer("wind_swirl2", "AirSwirl", count=1, life=(0.3, 0.45), size=4.5, dir=TOP, ori=VEL_PERP, spread=(0, 0),
+              speed=(0.05, 0.05), color=WIND_GREY, transp=AIR_SOFT, flags=ACCENT),
+        Layer("streak", "AirStreaks", count=4, life=(0.08, 0.18), size=1.4, dir=FRONT, spread=(12, 12),
+              speed=(40, 70), drag=12, color=WIND_LIGHT, transp=STREAK, z=1),
+    ]
+    return {"name": "SwordCut", "layers": {"": cut}}
+
+
+def sword_thrust():
+    """Fired by SwordSwing at the fastest point of a stab, at the point, looking along the thrust: a
+    ring of air pushed off the point, a small blast and swirl ahead of it, and air streaks."""
+    pierce = [
+        Layer("air_shock", "PressureRing", count=1, life=(0.15, 0.22), size=3.5, dir=FRONT, ori=VEL_PERP,
+              speed=(0.15, 0.15), drag=3.8, color=WHITE, transp=AIR),
+        Layer("wind_burst", "AirPierce", spread=(0, 0), count=1, life=(0.25, 0.35), size=4.5, dir=FRONT,
+              ori=VEL_PERP, speed=(0.1, 0.1), color=WHITE, transp=AIR, flags=ACCENT),
+        Layer("wind_swirl", "AirSwirl", count=1, life=(0.25, 0.35), size=3, dir=FRONT, ori=VEL_PERP, spread=(10, 10),
+              speed=(0.05, 0.05), rotspeed=(80, 160), color=WIND_LIGHT, transp=AIR, flags=ACCENT),
+        Layer("streak", "AirStreaks", count=5, life=(0.1, 0.2), size=1.6, dir=FRONT, spread=(8, 8), speed=(50, 80),
+              drag=12, color=WIND_LIGHT, transp=STREAK, z=1),
+    ]
+    return {"name": "SwordThrust", "layers": {"": pierce}}
+
+
+def fist_push():
+    """Fired by FistSwing at the fastest point of a punch, just ahead of the knuckles, looking along the
+    punch: a small push of air, a pressure ring, a swirl and a few streaks. Smaller than M1Hit, which
+    is the contact."""
+    push = [
+        Layer("wind_burst", "AirPush", spread=(0, 0), count=1, life=(0.2, 0.3), size=3.2, dir=FRONT, ori=VEL_PERP,
+              speed=(0.1, 0.1), color=WHITE, transp=AIR, flags=ACCENT),
+        Layer("air_shock", "PressureRing", count=1, life=(0.12, 0.18), size=2.6, dir=FRONT, ori=VEL_PERP,
+              speed=(0.15, 0.15), drag=3.8, color=WHITE, transp=AIR),
+        Layer("wind_swirl", "AirSwirl", count=1, life=(0.2, 0.3), size=2.2, dir=FRONT, ori=VEL_PERP, spread=(10, 10),
+              speed=(0.05, 0.05), rotspeed=(80, 160), color=WIND_LIGHT, transp=AIR_SOFT, flags=ACCENT),
+        Layer("streak", "AirStreaks", count=3, life=(0.07, 0.14), size=0.9, dir=FRONT, spread=(15, 15),
+              speed=(30, 50), drag=12, color=WIND_LIGHT, transp=STREAK, z=1),
+    ]
+    return {"name": "FistPush", "layers": {"": push}}
+
+
 EFFECTS = [m1_hit, m1_final, heavy_hit, ground_slam, dash_burst, dash_trail, footstep, land, jump, slide_dust,
-           run_dust]
+           run_dust, sword_swing, fist_swing, sword_cut, sword_thrust, fist_push]
 
 
 # --------------------------------------------------------------------------- export
@@ -573,12 +718,18 @@ def build_effect(lib, spec):
     root_attrs = {"Continuous": bool(spec.get("continuous"))}
     if spec.get("light"):
         root_attrs["LightBrightness"], root_attrs["LightRange"], root_attrs["LightTime"] = spec["light"]
+    root_attrs.update(spec.get("attrs", {}))
     root = attachment(spec["name"], attrs=root_attrs)
+    for trail in spec.get("trails", []):
+        root.append(trail.build(lib))
     for sub, layers in spec["layers"].items():
         if sub == "":
             parent = root
         elif sub == "Air":
             parent = attachment("Air", pos=(0, spec.get("air_height", 1.5), 0))
+            root.append(parent)
+        elif sub == "Wake":  # swing templates: Swing moves it onto the blade / fist
+            parent = attachment("Wake", attrs=spec.get("wake_attrs"))
             root.append(parent)
         else:  # "Ground": the player drops it onto the floor (until then it sits ground_offset below)
             parent = attachment(sub, pos=(0, spec.get("ground_offset", -3), 0))
@@ -605,13 +756,13 @@ def build(ref_path, out_dir=HERE):
     for make in EFFECTS:
         spec = make()
         effects.append(build_effect(lib, spec))
-        counts[spec["name"]] = sum(len(v) for v in spec["layers"].values())
+        counts[spec["name"]] = sum(len(v) for v in spec["layers"].values()) + len(spec.get("trails", []))
     root = ET.Element("roblox", {"version": "4"})
     root.append(module)
     out = os.path.join(out_dir, "CombatVFX.rbxmx")
     ET.ElementTree(root).write(out, encoding="utf-8", xml_declaration=False)
     for k, v in counts.items():
-        print("%-11s %2d layers" % (k, v))
+        print("%-12s %2d layers" % (k, v))
     print("wrote", out)
     return out
 

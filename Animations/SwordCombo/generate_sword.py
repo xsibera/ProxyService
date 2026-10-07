@@ -804,6 +804,12 @@ def add_sword(rig):
             handle = part
         else:
             part.append(_joint("Weld", name, handle.get("referent"), part.get("referent"), local, np.eye(4)))
+    # where the blade starts and ends, for the swing trails in CombatVFX (CombatVFX.Swing)
+    for name, z in (("SwingBase", -0.75), ("SwingTip", -TIP + 0.05)):
+        att = ET.SubElement(handle, "Item", {"class": "Attachment", "referent": ref()})
+        aprops = ET.SubElement(att, "Properties")
+        prop(aprops, "string", "Name", name)
+        _cframe_prop(aprops, "CFrame", cf((0, 0, z)))
     rarm.append(_joint("Motor6D", "Handle", rarm.get("referent"), handle.get("referent"), GRIP, np.eye(4)))
     rig.append(sword)
 

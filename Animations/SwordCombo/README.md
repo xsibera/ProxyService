@@ -20,6 +20,7 @@ Every clip is baked at 60 fps with Linear easing and Priority **Action**, the sa
 `SwordCombo.rbxm` contains **Sword Rig**: the reference "normal player" R6 rig, with all six clips in `AnimSaves`.
 - **Sword:** a model whose `Handle` part hangs off a Motor6D called **`Handle`** inside the Right Arm. The reference weapon rigs are built the same way. The Motor6D's C0 is the fist, `(0, -0.95, 0)`, with no rotation, so the blade points straight out of the fist.
 - **Sword parts:** the blade, fuller, crossguard, pommel and a two-wedge point are welded to `Handle`. It's about 4.25 studs from the grip to the tip.
+- **Swing attachments:** `Handle` holds two attachments, **`SwingBase`** (where the blade leaves the guard) and **`SwingTip`** (the point). The swing trails in `VFX/CombatVFX` (`CombatVFX.Swing("SwordSwing", …)`) run between them. If you use your own sword, give its blade the same two attachments.
 - **Scabbard:** welded to the Torso. The hilt sits at the front of the left hip and the scabbard runs back and down along the outside of the left thigh.
 - **Physics:** no part collides and every part is massless.
 - **Legs:** every clip keys the legs at Weight 0, so your walk (or whatever else is playing) drives them. The exceptions are the running and aerial attacks, which drive the legs themselves.

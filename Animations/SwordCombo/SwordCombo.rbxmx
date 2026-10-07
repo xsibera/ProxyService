@@ -2746,7 +2746,7 @@
           <bool name="Visible">false</bool>
         </Properties>
       </Item>
-    <Item class="Motor6D" referent="RBXCOMBO006289"><Properties><string name="Name">Handle</string><CoordinateFrame name="C0"><X>0.0</X><Y>-0.95</Y><Z>0.0</Z><R00>1.0</R00><R01>0.0</R01><R02>0.0</R02><R10>0.0</R10><R11>1.0</R11><R12>0.0</R12><R20>0.0</R20><R21>0.0</R21><R22>1.0</R22></CoordinateFrame><CoordinateFrame name="C1"><X>0.0</X><Y>0.0</Y><Z>0.0</Z><R00>1.0</R00><R01>0.0</R01><R02>0.0</R02><R10>0.0</R10><R11>1.0</R11><R12>0.0</R12><R20>0.0</R20><R21>0.0</R21><R22>1.0</R22></CoordinateFrame><bool name="Enabled">true</bool><Ref name="Part0">15676</Ref><Ref name="Part1">RBXCOMBO006276</Ref></Properties></Item></Item>
+    <Item class="Motor6D" referent="RBXCOMBO006291"><Properties><string name="Name">Handle</string><CoordinateFrame name="C0"><X>0.0</X><Y>-0.95</Y><Z>0.0</Z><R00>1.0</R00><R01>0.0</R01><R02>0.0</R02><R10>0.0</R10><R11>1.0</R11><R12>0.0</R12><R20>0.0</R20><R21>0.0</R21><R22>1.0</R22></CoordinateFrame><CoordinateFrame name="C1"><X>0.0</X><Y>0.0</Y><Z>0.0</Z><R00>1.0</R00><R01>0.0</R01><R02>0.0</R02><R10>0.0</R10><R11>1.0</R11><R12>0.0</R12><R20>0.0</R20><R21>0.0</R21><R22>1.0</R22></CoordinateFrame><bool name="Enabled">true</bool><Ref name="Part0">15676</Ref><Ref name="Part1">RBXCOMBO006276</Ref></Properties></Item></Item>
     <Item class="Part" referent="15678">
       <Properties>
         <string name="Name">Left Leg</string>
@@ -3228,7 +3228,7 @@
           <Z>0</Z>
         </Vector3>
       <CoordinateFrame name="CFrame"><X>-2.7763338</X><Y>2.05</Y><Z>-3.3740883</Z><R00>1.0</R00><R01>0.0</R01><R02>0.0</R02><R10>0.0</R10><R11>1.0</R11><R12>0.0</R12><R20>0.0</R20><R21>0.0</R21><R22>1.0</R22></CoordinateFrame></Properties>
-      </Item>
+      <Item class="Attachment" referent="RBXCOMBO006289"><Properties><string name="Name">SwingBase</string><CoordinateFrame name="CFrame"><X>0.0</X><Y>0.0</Y><Z>-0.75</Z><R00>1.0</R00><R01>0.0</R01><R02>0.0</R02><R10>0.0</R10><R11>1.0</R11><R12>0.0</R12><R20>0.0</R20><R21>0.0</R21><R22>1.0</R22></CoordinateFrame></Properties></Item><Item class="Attachment" referent="RBXCOMBO006290"><Properties><string name="Name">SwingTip</string><CoordinateFrame name="CFrame"><X>0.0</X><Y>0.0</Y><Z>-4.195</Z><R00>1.0</R00><R01>0.0</R01><R02>0.0</R02><R10>0.0</R10><R11>1.0</R11><R12>0.0</R12><R20>0.0</R20><R21>0.0</R21><R22>1.0</R22></CoordinateFrame></Properties></Item></Item>
     <Item class="Part" referent="RBXCOMBO006277">
       <Properties>
         <string name="Name">Pommel</string>
@@ -3737,7 +3737,7 @@
         </Vector3>
       <CoordinateFrame name="CFrame"><X>-2.7763338</X><Y>1.9449999999999998</Y><Z>-7.3440883</Z><R00>-1.0</R00><R01>-1.2246467991473532e-16</R01><R02>0.0</R02><R10>1.2246467991473532e-16</R10><R11>-1.0</R11><R12>0.0</R12><R20>0.0</R20><R21>0.0</R21><R22>1.0</R22></CoordinateFrame></Properties>
       <Item class="Weld" referent="RBXCOMBO006288"><Properties><string name="Name">TipBottom</string><CoordinateFrame name="C0"><X>0.0</X><Y>-0.105</Y><Z>-3.97</Z><R00>-1.0</R00><R01>-1.2246467991473532e-16</R01><R02>0.0</R02><R10>1.2246467991473532e-16</R10><R11>-1.0</R11><R12>0.0</R12><R20>0.0</R20><R21>0.0</R21><R22>1.0</R22></CoordinateFrame><CoordinateFrame name="C1"><X>0.0</X><Y>0.0</Y><Z>0.0</Z><R00>1.0</R00><R01>0.0</R01><R02>0.0</R02><R10>0.0</R10><R11>1.0</R11><R12>0.0</R12><R20>0.0</R20><R21>0.0</R21><R22>1.0</R22></CoordinateFrame><bool name="Enabled">true</bool><Ref name="Part0">RBXCOMBO006276</Ref><Ref name="Part1">RBXCOMBO006287</Ref></Properties></Item></Item>
-    </Item><Item class="Model" referent="RBXCOMBO006290"><Properties><string name="Name">Scabbard</string></Properties><Item class="Part" referent="RBXCOMBO006291">
+    </Item><Item class="Model" referent="RBXCOMBO006292"><Properties><string name="Name">Scabbard</string></Properties><Item class="Part" referent="RBXCOMBO006293">
       <Properties>
         <string name="Name">Scabbard</string>
         <bool name="Anchored">false</bool>
@@ -3821,8 +3821,8 @@
           <Z>0</Z>
         </Vector3>
       <CoordinateFrame name="CFrame"><X>-5.856329590526878</X><Y>0.9385815073671369</Y><Z>-1.9288680526293043</Z><R00>-0.8177973616290094</R00><R01>0.5357002680775403</R01><R02>0.21031571052653877</R02><R10>0.5636432690136367</R10><R11>0.6717238907885462</R11><R12>0.48072162406066005</R12><R20>0.11624861551112192</R20><R21>0.5116759104409243</R21><R22>-0.8512778759407522</R22></CoordinateFrame></Properties>
-      <Item class="Weld" referent="RBXCOMBO006292"><Properties><string name="Name">Scabbard</string><CoordinateFrame name="C0"><X>-1.5799955905268779</X><Y>-2.061418492632863</Y><Z>1.4452202473706957</Z><R00>-0.8177973616290094</R00><R01>0.5357002680775403</R01><R02>0.21031571052653877</R02><R10>0.5636432690136367</R10><R11>0.6717238907885462</R11><R12>0.48072162406066005</R12><R20>0.11624861551112192</R20><R21>0.5116759104409243</R21><R22>-0.8512778759407522</R22></CoordinateFrame><CoordinateFrame name="C1"><X>0.0</X><Y>0.0</Y><Z>0.0</Z><R00>1.0</R00><R01>0.0</R01><R02>0.0</R02><R10>0.0</R10><R11>1.0</R11><R12>0.0</R12><R20>0.0</R20><R21>0.0</R21><R22>1.0</R22></CoordinateFrame><bool name="Enabled">true</bool><Ref name="Part0">15620</Ref><Ref name="Part1">RBXCOMBO006291</Ref></Properties></Item></Item>
-    <Item class="Part" referent="RBXCOMBO006293">
+      <Item class="Weld" referent="RBXCOMBO006294"><Properties><string name="Name">Scabbard</string><CoordinateFrame name="C0"><X>-1.5799955905268779</X><Y>-2.061418492632863</Y><Z>1.4452202473706957</Z><R00>-0.8177973616290094</R00><R01>0.5357002680775403</R01><R02>0.21031571052653877</R02><R10>0.5636432690136367</R10><R11>0.6717238907885462</R11><R12>0.48072162406066005</R12><R20>0.11624861551112192</R20><R21>0.5116759104409243</R21><R22>-0.8512778759407522</R22></CoordinateFrame><CoordinateFrame name="C1"><X>0.0</X><Y>0.0</Y><Z>0.0</Z><R00>1.0</R00><R01>0.0</R01><R02>0.0</R02><R10>0.0</R10><R11>1.0</R11><R12>0.0</R12><R20>0.0</R20><R21>0.0</R21><R22>1.0</R22></CoordinateFrame><bool name="Enabled">true</bool><Ref name="Part0">15620</Ref><Ref name="Part1">RBXCOMBO006293</Ref></Properties></Item></Item>
+    <Item class="Part" referent="RBXCOMBO006295">
       <Properties>
         <string name="Name">Locket</string>
         <bool name="Anchored">false</bool>
@@ -3906,8 +3906,8 @@
           <Z>0</Z>
         </Vector3>
       <CoordinateFrame name="CFrame"><X>-5.498792882631762</X><Y>1.755808268270259</Y><Z>-3.376040441728583</Z><R00>-0.8177973616290094</R00><R01>0.5357002680775403</R01><R02>0.21031571052653877</R02><R10>0.5636432690136367</R10><R11>0.6717238907885462</R11><R12>0.48072162406066005</R12><R20>0.11624861551112192</R20><R21>0.5116759104409243</R21><R22>-0.8512778759407522</R22></CoordinateFrame></Properties>
-      <Item class="Weld" referent="RBXCOMBO006294"><Properties><string name="Name">Locket</string><CoordinateFrame name="C0"><X>-1.222458882631762</X><Y>-1.244191731729741</Y><Z>-0.0019521417285831566</Z><R00>-0.8177973616290094</R00><R01>0.5357002680775403</R01><R02>0.21031571052653877</R02><R10>0.5636432690136367</R10><R11>0.6717238907885462</R11><R12>0.48072162406066005</R12><R20>0.11624861551112192</R20><R21>0.5116759104409243</R21><R22>-0.8512778759407522</R22></CoordinateFrame><CoordinateFrame name="C1"><X>0.0</X><Y>0.0</Y><Z>0.0</Z><R00>1.0</R00><R01>0.0</R01><R02>0.0</R02><R10>0.0</R10><R11>1.0</R11><R12>0.0</R12><R20>0.0</R20><R21>0.0</R21><R22>1.0</R22></CoordinateFrame><bool name="Enabled">true</bool><Ref name="Part0">15620</Ref><Ref name="Part1">RBXCOMBO006293</Ref></Properties></Item></Item>
-    <Item class="Part" referent="RBXCOMBO006295">
+      <Item class="Weld" referent="RBXCOMBO006296"><Properties><string name="Name">Locket</string><CoordinateFrame name="C0"><X>-1.222458882631762</X><Y>-1.244191731729741</Y><Z>-0.0019521417285831566</Z><R00>-0.8177973616290094</R00><R01>0.5357002680775403</R01><R02>0.21031571052653877</R02><R10>0.5636432690136367</R10><R11>0.6717238907885462</R11><R12>0.48072162406066005</R12><R20>0.11624861551112192</R20><R21>0.5116759104409243</R21><R22>-0.8512778759407522</R22></CoordinateFrame><CoordinateFrame name="C1"><X>0.0</X><Y>0.0</Y><Z>0.0</Z><R00>1.0</R00><R01>0.0</R01><R02>0.0</R02><R10>0.0</R10><R11>1.0</R11><R12>0.0</R12><R20>0.0</R20><R21>0.0</R21><R22>1.0</R22></CoordinateFrame><bool name="Enabled">true</bool><Ref name="Part0">15620</Ref><Ref name="Part1">RBXCOMBO006295</Ref></Properties></Item></Item>
+    <Item class="Part" referent="RBXCOMBO006297">
       <Properties>
         <string name="Name">Chape</string>
         <bool name="Anchored">false</bool>
@@ -3991,6 +3991,6 @@
           <Z>0</Z>
         </Vector3>
       <CoordinateFrame name="CFrame"><X>-6.209659984211463</X><Y>0.13096917894522742</Y><Z>-0.49872122104884076</Z><R00>-0.8177973616290094</R00><R01>0.5357002680775403</R01><R02>0.21031571052653877</R02><R10>0.5636432690136367</R10><R11>0.6717238907885462</R11><R12>0.48072162406066005</R12><R20>0.11624861551112192</R20><R21>0.5116759104409243</R21><R22>-0.8512778759407522</R22></CoordinateFrame></Properties>
-      <Item class="Weld" referent="RBXCOMBO006296"><Properties><string name="Name">Chape</string><CoordinateFrame name="C0"><X>-1.933325984211463</X><Y>-2.8690308210547726</Y><Z>2.875367078951159</Z><R00>-0.8177973616290094</R00><R01>0.5357002680775403</R01><R02>0.21031571052653877</R02><R10>0.5636432690136367</R10><R11>0.6717238907885462</R11><R12>0.48072162406066005</R12><R20>0.11624861551112192</R20><R21>0.5116759104409243</R21><R22>-0.8512778759407522</R22></CoordinateFrame><CoordinateFrame name="C1"><X>0.0</X><Y>0.0</Y><Z>0.0</Z><R00>1.0</R00><R01>0.0</R01><R02>0.0</R02><R10>0.0</R10><R11>1.0</R11><R12>0.0</R12><R20>0.0</R20><R21>0.0</R21><R22>1.0</R22></CoordinateFrame><bool name="Enabled">true</bool><Ref name="Part0">15620</Ref><Ref name="Part1">RBXCOMBO006295</Ref></Properties></Item></Item>
+      <Item class="Weld" referent="RBXCOMBO006298"><Properties><string name="Name">Chape</string><CoordinateFrame name="C0"><X>-1.933325984211463</X><Y>-2.8690308210547726</Y><Z>2.875367078951159</Z><R00>-0.8177973616290094</R00><R01>0.5357002680775403</R01><R02>0.21031571052653877</R02><R10>0.5636432690136367</R10><R11>0.6717238907885462</R11><R12>0.48072162406066005</R12><R20>0.11624861551112192</R20><R21>0.5116759104409243</R21><R22>-0.8512778759407522</R22></CoordinateFrame><CoordinateFrame name="C1"><X>0.0</X><Y>0.0</Y><Z>0.0</Z><R00>1.0</R00><R01>0.0</R01><R02>0.0</R02><R10>0.0</R10><R11>1.0</R11><R12>0.0</R12><R20>0.0</R20><R21>0.0</R21><R22>1.0</R22></CoordinateFrame><bool name="Enabled">true</bool><Ref name="Part0">15620</Ref><Ref name="Part1">RBXCOMBO006297</Ref></Properties></Item></Item>
     </Item></Item>
   </roblox>

@@ -22,6 +22,53 @@ Basic combat effects: hits, a ground slam, dashing and movement. They're **reali
 
 Pass `Color` to tint the wind (the **Accent** layers) for elemental or nen moves. Without it, the wind stays white and grey.
 
+### Swing effects (M1 swing visualisation)
+
+| Effect | What it is |
+|---|---|
+| `SwordSwing` | Trails that follow the blade through the slash: a faint sheet over the blade's path, a stronger band along the edge and a line off the point. Wisps and streaks of air are pulled along behind the blade. At the fastest point it fires `SwordCut`, or `SwordThrust` on a stab. |
+| `FistSwing` | A soft streak behind the **punching** fist only (the guard hand is left alone), with air pulled along behind it. At the fastest point it fires `FistPush`. |
+| `SwordCut` | Wind arcs and a swirl of air lying in the plane of the slash, and air streaks thrown on along it. |
+| `SwordThrust` | A ring of air pushed off the point, a small blast and swirl ahead of it, and streaks. |
+| `FistPush` | A small push of air just ahead of the knuckles, a pressure ring and a few streaks. It's smaller than `M1Hit`, which is the contact. |
+
+The motion drives these effects, so they match every M1 without timing tables:
+- **When the trails show:** only while the blade or fist moves fast **relative to the body**. Running, dashing and turning don't count.
+- **The swing itself:** the trails come on for the strike only, not the wind-up or recovery.
+- **Bursts:** each one lands on the fastest frame of the swing.
+
+```lua
+local CombatVFX = require(game.ReplicatedStorage.CombatVFX)
+
+-- easiest: one LocalScript in StarterPlayerScripts. Every client then shows every player's swings.
+CombatVFX.WatchSwings({
+	[1234567890] = "SwordSwing", -- your published sword m1-1 id
+	[1234567891] = "SwordSwing", -- sword m1-2
+	[1234567892] = "SwordSwing", -- sword m1-3 (the stab)
+	[1234567893] = "FistSwing",  -- fist m1-1 ... and so on for each M1, running and aerial attack
+})
+
+-- or call it yourself where you play the attack (and for NPCs)
+local track = animator:LoadAnimation(swordM1)
+track:Play()
+CombatVFX.Swing("SwordSwing", character, track)
+```
+
+You can use either one, or both: a second call on the same character just keeps the first watcher going. Keys can be ids (`123`, `"rbxassetid://123"`) or Animation names.
+
+**What it needs from the character:**
+- **Sword:** two attachments in the blade, **`SwingBase`** (where the blade leaves the guard) and **`SwingTip`** (the point). The sword in `SwordCombo.rbxm` already has them. Without them it uses a part named `Blade`, and otherwise it warns once.
+- **Fists:** the R6 arms. Nothing to add.
+
+**Tuning:** the settings are attributes on `Effects/SwordSwing` and `Effects/FistSwing`. Speeds are in studs per second, relative to the body, and were measured from the M1s:
+
+| Attribute | Sword | Fist | Why |
+|---|---|---|---|
+| `OnSpeed` / `OffSpeed` | 120 / 80 | 50 / 35 | Sword slashes peak at 230–280 and the wind-ups stay under 100. Punches peak at 75–125. |
+| `ThrustSpeed` / `ThrustAlign` | 45 / 0.85 | – | The stab peaks at 70, moving straight along the blade. |
+
+The trails have no texture, so each is a soft sheet that fades out over 0.1–0.2s. Put a texture on them in Studio if you want streaks. Turn up their `Transparency` keys for fainter trails, and their `Lifetime` for longer ones.
+
 ## Using it
 
 ```lua
@@ -101,6 +148,13 @@ About 600 emitters across Jajanken, BigBang, CrazySlots, Swordsmans Slash, Disru
 - `CombatVFX.luau`: the module source. It's also embedded in the rbxm.
 - `generate_vfx.py`: builds the rbxmx from your reference file. Each effect is a list of layers, with a reference emitter and the changes to it.
 - `tests/smoke.luau`: a headless test of the module against Place1's mock engine. Run it with `luaurun tests/smoke.luau` from this folder.
+- `tests/swing.luau`: plays every frame of the real fist and sword M1s through `Swing` on a character that is running and turning. It checks:
+  - when the trails come on, and that only the punching fist trails;
+  - that there's one burst per swing, aimed along it and placed at the blade or knuckles;
+  - that nothing fires on the unsheathe or on a dash and spin;
+  - the cleanup, tracks, `WatchSwings` and colour.
+
+  The frames are in `tests/swing_frames.luau`. Rebuild them with `python3 tests/make_swing_fixture.py` after changing the animations or the swing settings.
 
 ```bash
 python3 generate_vfx.py path/to/nen.rbxmx   # nen.rbxm converted to XML
