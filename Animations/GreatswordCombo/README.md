@@ -62,9 +62,13 @@ The unsheathe works the same way. From the pull on, the sword follows one smooth
 
 This machinery is shared with the katana set, in `../twohanded.py`.
 
-## Arm speed limits
+## Arms: out of the torso, and speed limits
 
-Pointing an arm from its shoulder at its fist goes wrong in two places:
+**Out of the torso.** An R6 arm pointed from its shoulder at a fist in front of the body's centre cuts straight through the chest. Two hands on one grip put a fist there almost all the time. So wherever an arm would sink into the torso, its upper end swings forward, away from the shoulder, just far enough to clear it. The fist stays where it is. The swing eases in and out over a few frames.
+- **Result:** no arm is ever more than about 15% inside the torso, where before the left arm sat half inside it in the guard.
+- **Slide:** the arms slide further out of their sockets than before, up to 2.9 studs in the running attack, where the left hand holds the grip out on the far right.
+
+**Speed limits.** Pointing an arm from its shoulder at its fist goes wrong in two more places:
 - **A fist passing close to the shoulder** whips the arm round. In the backhand, the left fist passes 0.4 studs from the left shoulder.
 - **A fist going overhead** spins the arm about itself.
 
@@ -89,8 +93,8 @@ Deliberately slower than the references, for weight: the swings take longer, the
 | Backhand tip speed | 45.2 blade lengths/s (kareemandbeast m1-2) | 26.3 (m1-2, 147 studs/s) |
 | Finisher / running / aerial tip speed | 45–61.5 blade lengths/s | 23.9 / 22.9 / 31.6 |
 | Draw tip speed | 18.3 blade lengths/s (equip, 88 studs/s) | 11.4 (unsheathe, 64 studs/s) |
-| Arm slide out of the shoulder | up to 2.6–2.7 studs | up to 1.7 studs |
-| Arm turn / roll speed | up to 2,300–2,800 / 1,000–1,400°/s | up to 1,240 / 1,300°/s |
+| Arm slide out of the shoulder | up to 2.6–2.7 studs | up to 2.4 studs, and 2.9 for the left hand reaching to the far right in the running attack |
+| Arm turn / roll speed | up to 2,300–2,800 / 1,000–1,400°/s | capped at 2,200 / 1,300°/s |
 
 **Hit timing:** the `Hit` comes within a frame of the tip's top speed in every strike except the running attack. There it comes 6 frames before the top speed, where the blade, held out at the front right, turns to face the target.
 

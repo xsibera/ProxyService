@@ -140,11 +140,84 @@ def tame_arm(rows, joint):
     return np.array(out)
 
 
+# --------------------------------------------------------------------------- arms out of the torso
+TORSO_HALF = np.array([1.0, 1.0, 0.5])
+# points through an R6 arm (1 x 2 x 1), in arm space, to measure how much of it is inside the torso
+_ARM_GRID = np.array([[x, y, z, 1.0] for x in np.linspace(-0.45, 0.45, 4) for y in np.linspace(-0.95, 0.95, 9)
+                      for z in np.linspace(-0.45, 0.45, 4)])
+CLEAR_OK = 0.06  # share of an arm that may sit inside the torso
+CLEAR_MAX = 1.6  # studs the upper end of an arm may swing forward to get out
+
+
+def inside_torso(arm_cf):
+    """Share of an arm (Torso-space CFrame) inside the torso box."""
+    pts = (arm_cf @ _ARM_GRID.T).T[:, :3]
+    return float(np.mean(np.all(np.abs(pts) < TORSO_HALF, axis=1)))
+
+
+def _arm_toward(fist, top, rot):
+    """The arm turned about its fist (which stays put) so its upper end points at `top`, rolled as
+    little as possible from `rot`."""
+    d = unit(np.asarray(top, float) - fist)
+    turn = _rot_between(rot[:, 1], d)
+    r = turn @ rot
+    return cf(fist - r @ FIST, r)
+
+
+def clear_torso(rows, joint):
+    """Keep an arm out of the torso without moving its fist. An arm aimed from its shoulder at a fist
+    in front of the body's centre (both hands on one grip) cuts through the chest; here its upper end
+    swings forward, away from the shoulder, just far enough to clear it (sliding in the socket, as
+    the reference arms do), eased in and out over a few frames so it never pops."""
+    cfs = [joint_cf(joint, r) for r in rows]
+    n = len(cfs)
+    need = np.zeros(n)
+    for f, m in enumerate(cfs):
+        share = inside_torso(m)
+        if share <= CLEAR_OK:
+            continue
+        fist = (m @ np.append(FIST, 1.0))[:3]
+        top = (m @ np.array([0.0, 1.0, 0.0, 1.0]))[:3]
+        best = (share, 0.0)
+        for k in np.arange(0.1, CLEAR_MAX + 1e-9, 0.1):
+            share = inside_torso(_arm_toward(fist, top + np.array([0.0, 0.0, -k]), m[:3, :3]))
+            if share < best[0] - 1e-9:
+                best = (share, float(k))
+            if share <= CLEAR_OK:
+                break
+        need[f] = best[1]
+    if not need.any():
+        return np.asarray(rows, float)
+    # widen, then ease: never less than a frame needs, and no sudden swings
+    wide = np.array([need[max(0, f - 5):f + 6].max() for f in range(n)])
+    kernel = np.exp(-0.5 * (np.arange(-12, 13) / 4.0) ** 2)
+    kernel /= kernel.sum()
+    padded = np.concatenate([np.full(12, wide[0]), wide, np.full(12, wide[-1])])
+    eased = np.maximum(np.convolve(padded, kernel, mode="valid"), need)
+    c0, c1 = MOTORS[joint]
+    out = []
+    for f, m in enumerate(cfs):
+        if eased[f] <= 1e-6:
+            out.append(np.asarray(rows[f], float))
+            continue
+        fist = (m @ np.append(FIST, 1.0))[:3]
+        top = (m @ np.array([0.0, 1.0, 0.0, 1.0]))[:3] + np.array([0.0, 0.0, -eased[f]])
+        t = inv(c0) @ _arm_toward(fist, top, m[:3, :3]) @ c1
+        out.append(np.array(from_transform(joint, t[:3, 3], t[:3, :3])))
+    return np.array(out)
+
+
 def tame(baked):
-    """tame_arm both arms, turning the wrist so the sword stays exactly where it was."""
+    """tame_arm both arms and keep them out of the torso (clear_torso), turning the wrist so the
+    sword stays exactly where it was."""
     swords = [handle_cf(a, h) for a, h in zip(baked["RArm"], baked["Handle"], strict=True)]
-    baked["RArm"] = tame_arm(baked["RArm"], "RArm")
-    baked["LArm"] = tame_arm(baked["LArm"], "LArm")
+    for joint in ("RArm", "LArm"):
+        # the two pull against each other (the cap can blend a fast swing back through the chest, and
+        # clearing it can speed the arm up again), so alternate until both hold
+        rows = clear_torso(baked[joint], joint)
+        for _ in range(4):
+            rows = clear_torso(tame_arm(rows, joint), joint)
+        baked[joint] = tame_arm(rows, joint)
     for f, sword in enumerate(swords):
         t = inv(GRIP) @ inv(joint_cf("RArm", baked["RArm"][f])) @ sword
         baked["Handle"][f] = np.array(from_transform("Handle", t[:3, 3], t[:3, :3]))

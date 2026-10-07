@@ -50,7 +50,8 @@ The katana uses the same two-handed machinery as the greatsword (`../twohanded.p
 - **The iai draw:** the sword is held exactly in the saya until the grab and drawn straight out along it. From there, it runs along two splines in world space:
   - the cut, carrying the draw's speed on into it, with the edge turned to lead while it moves fast, ending in a dead stop
   - the return into chudan
-- **Arm limits:** after the solve, `tame()` caps how fast each arm may turn (2,200°/s) and roll about itself (1,300°/s). Those caps are just under the reference weapon M1s' fastest. The fists don't move: the arms slide in their sockets instead.
+- **Arms out of the torso:** an R6 arm pointed from its shoulder at a fist in front of the body's centre cuts through the chest, and chudan puts both fists there. So wherever an arm would sink into the torso, its upper end swings forward just far enough to clear it. The fist stays put, and the swing eases in and out. No arm is ever more than about 15% inside the torso. Before, the left arm sat half inside it in chudan, and the right arm went into the chest as m1-2 wound up by the left hip.
+- **Arm limits:** `tame()` also caps how fast each arm may turn (2,200°/s) and roll about itself (1,300°/s). Those caps are just under the reference weapon M1s' fastest. The fists don't move: the arms slide in their sockets instead.
 - **The saya:** the blade is drawn 1.8 studs straight out of it before it swings free, so the last of the blade passes through the saya's mouth during the first frames of the cut. A full straight draw would need a 4-stud reach that an R6 arm doesn't have, and at that speed it doesn't show.
 
 ## Measured
@@ -66,7 +67,7 @@ Tip speed is compared in blade lengths per second, because the blades are differ
 | Finisher / running / aerial tip speed | 45–61.5 | 50.2 / 49.8 / 49.1 |
 | Draw tip speed | 18.3 (equip) | 34.9 (the iai is a cut) |
 | `Hit` after the tip's top speed | 1–3 frames | 1–2 frames |
-| Arm slide out of the shoulder | up to 2.6–2.7 studs | up to 1.5 studs |
+| Arm slide out of the shoulder | up to 2.6–2.7 studs | up to 2.5 studs, and 3.05 for the left hand reaching up to the right shoulder in m1-1's wind-up |
 
 ## Smoothness
 
