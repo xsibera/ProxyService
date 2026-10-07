@@ -74,6 +74,9 @@
       },
       "Loadout": {
         "$path": "../Loadout/build/Loadout.rbxmx"
+      },
+      "Melee": {
+        "$path": "../Melee/build/Melee.rbxmx"
       }
     },
 
@@ -90,6 +93,9 @@
       },
       "LoadoutServer": {
         "$path": "../Loadout/src/LoadoutServer.server.luau"
+      },
+      "MeleeServer": {
+        "$path": "../Melee/src/MeleeServer.server.luau"
       }
     },
 
@@ -116,6 +122,9 @@
         },
         "LoadoutClient": {
           "$path": "../Loadout/src/LoadoutClient.client.luau"
+        },
+        "MeleeClient": {
+          "$path": "../Melee/src/MeleeClient.client.luau"
         }
       }
     }

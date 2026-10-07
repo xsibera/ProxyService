@@ -1,6 +1,6 @@
 # Combat: the parry system
 
-The rules every ability's hits go through, for a parry-style fight. The ability kits ([Jajanken](../Jajanken/README.md) and [Killua](../Killua/README.md)) don't deal damage themselves when this is in the place: they call `Combat.resolve` for each target. That way blocking, parrying, guard breaks, stuns and counters work the same against every attack.
+The rules every ability's hits go through, for a parry-style fight. The kits ([Melee](../Melee/README.md)'s M1s, [Jajanken](../Jajanken/README.md) and [Killua](../Killua/README.md)) don't deal damage themselves when this is in the place: they call `Combat.resolve` for each target. That way blocking, parrying, guard breaks, stuns and counters work the same against every attack.
 
 ## Playing
 
@@ -24,7 +24,7 @@ You see **PARRY**, **PARRIED** or **GUARD BROKEN** on screen when it happens to 
 
 ## Files
 
-The folder is in both kits (`Killua.rbxm` and `Jajanken.rbxm`, as an optional folder) and in the ability place:
+The folder is in every kit (`Melee.rbxm` needs it for the stun; in `Killua.rbxm` and `Jajanken.rbxm` it's optional) and in the ability place:
 
 | | Put it in |
 |---|---|

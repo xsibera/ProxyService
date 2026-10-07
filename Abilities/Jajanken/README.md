@@ -22,6 +22,7 @@ Gamepad uses X / Y / B. Touch devices get on-screen buttons. In the ability plac
 ## Files
 
 - **`Jajanken.rbxl`**: the ability place. Open it in Studio and press **Play**. It contains:
+  - **M1s on left click** ([Melee](../Melee/README.md)): a five-hit stun string;
   - Gon's Jajanken;
   - **Killua's lightning** ([Killua](../Killua/README.md));
   - the **parry system** (F to block, tap F to parry);
@@ -183,7 +184,7 @@ The textures can't be downloaded here, so the effects were tuned from your emitt
   - `JajankenServer.server.luau`
   - `JajankenClient.client.luau`
   - the test area's `DummyRespawn`, `DummyBrains` (the training dummies) and `DamageNumbers`.
-- `place.project.json` + `build.sh`: build the ability place with Rojo, including Killua, Combat and Loadout from their folders. `build.sh` builds those too, and both kits (`Jajanken.rbxm` and `../Killua/Killua.rbxm`).
+- `place.project.json` + `build.sh`: build the ability place with Rojo, including Melee, Killua, Combat and Loadout from their folders. `build.sh` builds those too, and the kits (`Jajanken.rbxm`, `../Killua/Killua.rbxm` and `../Melee/Melee.rbxm`).
 
 ```bash
 ./build.sh path/to/ANIMSFORCLAUDE.rbxmx path/to/nen.rbxmx path/to/rbxconv   # rbxconv: any rbx-dom rbxmx -> rbxm converter

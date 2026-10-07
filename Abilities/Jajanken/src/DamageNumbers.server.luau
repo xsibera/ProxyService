@@ -10,6 +10,7 @@ local TweenService = game:GetService("TweenService")
 local ORANGE = Color3.fromRGB(255, 196, 92)
 local BLUE = Color3.fromRGB(150, 215, 255)
 local GREY = Color3.fromRGB(190, 195, 205)
+local WHITE = Color3.fromRGB(240, 242, 248)
 local KIT_COLOR = { Jajanken = ORANGE, Killua = BLUE }
 
 local function float(victim: Instance, text: string, color: Color3, scale: number?)
@@ -56,7 +57,7 @@ if Combat then
 		if entry then
 			return entry.Name, KIT_COLOR[entry.Kit] or ORANGE
 		end
-		return if typeof(ability) == "string" then ability else "", GREY
+		return if typeof(ability) == "string" then ability else "", WHITE -- M1s and the dummies' punches
 	end
 	Combat.Resolved.Event:Connect(function(_attacker: Instance, victim: Instance, outcome: string, hit: any)
 		local name, color = named(hit.Ability)
