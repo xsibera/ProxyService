@@ -733,7 +733,7 @@ def _part(template, name, cls, size, world, colour, material, reflectance):
             if cls == "WedgePart":
                 props.remove(el)
             else:
-                el.text = "0" if cls == "Ball" else "1"
+                el.text = {"Ball": "0", "Cylinder": "2"}.get(cls, "1")
         elif n.endswith("Surface"):
             el.text = "0"
     _cframe_prop(props, "CFrame", world)
