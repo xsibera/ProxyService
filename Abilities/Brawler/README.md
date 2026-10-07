@@ -103,6 +103,8 @@ The camera shakes on your hits and harder on the slams. The sounds are your game
 - `Slam` (GroundHit);
 - `Grab` (PaperHit).
 
+With the **hit sounds** (`Audio/HitSounds`) in ReplicatedStorage and their ids filled in, punches and kicks play `FistHit` and heavy hits play `FistHeavy` instead, a different take every time. See [Hit sounds](../../Audio/HitSounds/README.md).
+
 Set `Config.Color` to tint the wind for a coloured style.
 
 The kick trails are tested on your real kicks: the effects pack's swing test now plays every frame of the roundhouse and axe kick, and checks that only the kicking foot trails and that a push lands at the hit.

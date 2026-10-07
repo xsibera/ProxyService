@@ -218,8 +218,27 @@ local function options(ignore: { Instance }): any
 	return { Ignore = ignore, Color = Config.Color }
 end
 
+-- the hit sounds (Audio/HitSounds) play these, with variation, once ReplicatedStorage.HitSounds
+-- has ids for them; until then Brawler.Sounds' own do
+local HIT_KINDS = { Punch = "FistHit", Heavy = "FistHeavy" }
+local hitSounds: any = nil
+local function hitSound(name: string, position: Vector3, volume: number?): boolean
+	local kind = HIT_KINDS[name]
+	if not kind then
+		return false
+	end
+	if hitSounds == nil then
+		local module = ReplicatedStorage:FindFirstChild("HitSounds")
+		hitSounds = if module and module:IsA("ModuleScript") then require(module) :: any else false
+	end
+	return hitSounds and hitSounds.Play(kind, position, { Volume = volume or 1 }) ~= nil
+end
+
 -- a sound from Brawler.Sounds at a point
 local function sound(name: string, position: Vector3, volume: number?)
+	if hitSound(name, position, volume) then
+		return
+	end
 	local source = Sounds and Sounds:FindFirstChild(name)
 	if not (source and source:IsA("Sound")) then
 		return

@@ -89,6 +89,9 @@
       },
       "Brawler": {
         "$path": "../Brawler/build/Brawler.rbxmx"
+      },
+      "HitSounds": {
+        "$path": "../../Audio/HitSounds/HitSounds.luau"
       }
     },
 

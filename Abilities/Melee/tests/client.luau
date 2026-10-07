@@ -137,6 +137,22 @@ check(#m1s() == #HITS + 1, "let go: it stops")
 rest()
 
 print("== Hits")
+-- the hit sounds (Audio/HitSounds), with ids filled in: they play the hits instead of Melee.Sounds
+local HitSounds =
+	require(H.mock.module(game:GetService("ReplicatedStorage"), "HitSounds", "../../Audio/HitSounds/HitSounds.luau"))
+HitSounds.Ids.FistHit = { 101, 102, 103 }
+HitSounds.Ids.FistHeavy = { 201, 202 }
+local function soundsIn(name)
+	local out = {}
+	for _, d in ipairs(workspace.Terrain:GetChildren()) do
+		local s = d.Name == name and d:FindFirstChildOfClass("Sound")
+		if s then
+			table.insert(out, s)
+		end
+	end
+	return out
+end
+local meleeBefore = #soundsIn("MeleeSound")
 serverSays("Hit", aModel, dModel, 1, Vector3.new(0, 3, -4), "Hit")
 local play = VFX.calls.Play[1]
 check(play and play.name == "M1Hit", "M1Hit on a hit")
@@ -147,6 +163,14 @@ check(
 check(play and table.find(play.options.Ignore, dModel) ~= nil, "the floor probe ignores the victim")
 serverSays("Hit", aModel, dModel, 5, Vector3.new(0, 3, -4), "Hit")
 check(VFX.calls.Play[2] and VFX.calls.Play[2].name == "M1Final", "M1Final on the finisher")
+local hits = soundsIn("HitSound")
+check(
+	#hits == 2
+		and string.match(hits[1].SoundId, "^rbxassetid://10%d$")
+		and string.match(hits[2].SoundId, "^rbxassetid://20%d$"),
+	"the hit sounds play the hit and the finisher (FistHit, FistHeavy)"
+)
+check(#soundsIn("MeleeSound") == meleeBefore, "instead of Melee.Sounds' own")
 serverSays("Hit", aModel, dModel, 2, Vector3.new(0, 3, -4), "Blocked")
 serverSays("Hit", aModel, dModel, 2, Vector3.new(0, 3, -4), "Parried")
 check(#VFX.calls.Play == 2, "blocked and parried hits: none (Combat draws those)")

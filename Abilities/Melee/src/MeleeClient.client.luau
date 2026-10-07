@@ -148,7 +148,26 @@ end
 
 --------------------------------------------------------------------------- sounds
 
+-- the hit sounds (Audio/HitSounds) play these, with variation, once ReplicatedStorage.HitSounds
+-- has ids for them; until then Melee.Sounds' own do
+local HIT_KINDS = { Hit = "FistHit", Finisher = "FistHeavy" }
+local hitSounds: any = nil
+local function hitSound(name: string, at: Vector3, volume: number?): boolean
+	local kind = HIT_KINDS[name]
+	if not kind then
+		return false
+	end
+	if hitSounds == nil then
+		local module = ReplicatedStorage:FindFirstChild("HitSounds")
+		hitSounds = if module and module:IsA("ModuleScript") then require(module) :: any else false
+	end
+	return hitSounds and hitSounds.Play(kind, at, { Volume = volume or 1 }) ~= nil
+end
+
 local function sound(name: string, at: Vector3, volume: number?)
+	if hitSound(name, at, volume) then
+		return
+	end
 	local template = Sounds and Sounds:FindFirstChild(name)
 	if not (template and template:IsA("Sound")) then
 		return

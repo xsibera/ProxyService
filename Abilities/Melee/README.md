@@ -43,7 +43,7 @@ Set `Config.Color` to tint the wind for a coloured style.
 
 Blocked and parried hits show the parry system's sparks instead. The camera gives a small shake when your hit lands or you're hit, and a bigger one on the finisher.
 
-The sounds are your game's own, re-pitched: `Swing` (Slash), and `Hit` and `Finisher` (RockHit). Swap in your own in `Melee › Sounds`.
+The sounds are your game's own, re-pitched: `Swing` (Slash), and `Hit` and `Finisher` (RockHit). Swap in your own in `Melee › Sounds`. With the **hit sounds** (`Audio/HitSounds`) in ReplicatedStorage and their ids filled in, the hits play `FistHit` and the finisher `FistHeavy` instead, a different take every time. See [Hit sounds](../../Audio/HitSounds/README.md).
 
 ## Animations
 
@@ -123,11 +123,11 @@ Tests (`luaurun`, from this folder):
   - blocked and parried hits, being hit mid-swing, and being busy with an ability;
   - walk speed, reach, players and teams, bad input and death;
   - NPCs: their strings through `NpcM1`, hitting players only for the NPC share, and being cut short.
-- `tests/client.luau`, 46 checks:
+- `tests/client.luau`, 48 checks:
   - a click, the swing trail, the step in and turning to the camera;
   - early clicks being remembered;
   - holding through the whole string, each hit as it opens;
-  - the hit effects and camera shake;
+  - the hit effects, the hit sounds (through `HitSounds` when it has ids) and camera shake;
   - other players' swings, and NPCs' swings animated here;
   - the server's denials and stops;
   - no swinging while stunned, blocking, busy or clicking on the UI;

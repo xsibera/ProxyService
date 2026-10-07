@@ -1,0 +1,112 @@
+<roblox version="4"><Item class="ModuleScript" referent="RBXCOMBO000001"><Properties><string name="Name">HitSounds</string><ProtectedString name="Source">--!strict
+--[[
+	HitSounds (ReplicatedStorage): the hit sounds from Audio/HitSounds, played with variation. Each
+	play is a different take from the last one of its kind, with its pitch and volume nudged a
+	little, so a string of hits never sounds like one sound on repeat.
+
+	Kinds:
+	  FistHit       8 takes, light to medium punches and kicks
+	  FistHeavy     4 takes, big hits (a sub boom, a crunch, a bigger room)
+	  BloodySlash   6 takes, sharp cuts (the edge, the slice, the splat and the blood)
+	  BloodyStab    4 takes, stabs and gory hits (a heavier squelch and thud, and the pull-out)
+
+	Upload the files in Audio/HitSounds/ogg to Roblox (Creator Dashboard &gt; Development Items &gt; Audio,
+	or Studio's Asset Manager) and paste their ids into HitSounds.Ids below, in order. A kind with no
+	ids yet plays nothing (Play returns nil), and the kits fall back to their own sounds.
+
+	HitSounds.Play(kind, at, options?) -&gt; Sound?
+	  at        a Vector3 (the sound stays there) or a BasePart (it moves with it)
+	  options   Volume  times the kind's volume (default 1)
+	            Pitch   playback speed before the nudge (default 1)
+	            Spread  how far the pitch is nudged either way (default HitSounds.Spread)
+	Call it on each client (the kits play hit sounds where they play hit effects), so everyone hears
+	it without the server sending sounds.
+]]
+
+local Debris = game:GetService("Debris")
+
+local HitSounds = {}
+
+-- rbxassetid numbers (or "rbxassetid://..." strings), in the order of the files' numbers
+HitSounds.Ids = {
+	FistHit = { "", "", "", "", "", "", "", "" },
+	FistHeavy = { "", "", "", "" },
+	BloodySlash = { "", "", "", "", "", "" },
+	BloodyStab = { "", "", "", "" },
+} :: { [string]: { any } }
+
+HitSounds.Volume = { FistHit = 0.8, FistHeavy = 1.0, BloodySlash = 0.75, BloodyStab = 0.85 } :: { [string]: number }
+HitSounds.Spread = 0.06 -- the playback speed is nudged up to this much either way
+HitSounds.VolumeSpread = 0.1 -- and the volume up to this much
+HitSounds.RollOffMinDistance = 10 -- studs: full volume this close
+HitSounds.RollOffMaxDistance = 160 -- silent this far away
+
+local last: { [string]: number } = {} -- the take each kind played last
+
+local function asId(value: any): string?
+	if typeof(value) == "number" and value &gt; 0 then
+		return "rbxassetid://" .. string.format("%d", value)
+	elseif typeof(value) == "string" and value ~= "" then
+		return if string.find(value, "://", 1, true) then value else "rbxassetid://" .. value
+	end
+	return nil
+end
+
+-- the id of the take to play next for a kind (never the one it played last, when it has others)
+function HitSounds.pick(kind: string): string?
+	local takes = HitSounds.Ids[kind]
+	if not takes then
+		return nil
+	end
+	local choices = {}
+	for i, value in takes do
+		if asId(value) and i ~= last[kind] then
+			table.insert(choices, i)
+		end
+	end
+	if #choices == 0 then
+		return if last[kind] then asId(takes[last[kind]]) else nil -- only the one take filled in
+	end
+	local i = choices[math.random(1, #choices)]
+	last[kind] = i
+	return asId(takes[i])
+end
+
+local function nudge(spread: number): number
+	return 1 + (math.random() * 2 - 1) * spread
+end
+
+function HitSounds.Play(kind: string, at: Vector3 | BasePart, options: { [string]: any }?): Sound?
+	local id = HitSounds.pick(kind)
+	if not id then
+		return nil
+	end
+	local opts = options or {}
+	local holder: Instance
+	if typeof(at) == "Vector3" then
+		local attachment = Instance.new("Attachment")
+		attachment.Name = "HitSound"
+		attachment.CFrame = CFrame.new(at) -- Terrain sits at the origin
+		attachment.Parent = workspace.Terrain
+		holder = attachment
+	elseif typeof(at) == "Instance" and at:IsA("BasePart") then
+		holder = at
+	else
+		return nil
+	end
+	local sound = Instance.new("Sound")
+	sound.Name = "HitSound"
+	sound.SoundId = id
+	sound.PlaybackSpeed = (opts.Pitch or 1) * nudge(opts.Spread or HitSounds.Spread)
+	sound.Volume = (HitSounds.Volume[kind] or 1) * (opts.Volume or 1) * nudge(HitSounds.VolumeSpread)
+	sound.RollOffMode = Enum.RollOffMode.InverseTapered
+	sound.RollOffMinDistance = HitSounds.RollOffMinDistance
+	sound.RollOffMaxDistance = HitSounds.RollOffMaxDistance
+	sound.Parent = holder
+	sound:Play()
+	Debris:AddItem(if holder:IsA("Attachment") then holder else sound, 3)
+	return sound
+end
+
+return HitSounds
+</ProtectedString></Properties></Item></roblox>
