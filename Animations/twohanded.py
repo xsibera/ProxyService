@@ -306,6 +306,14 @@ def m1_path(c, guard, pre, arc, post, lag=(20.0, -4.0), blade_end=None, hit_afte
     return out
 
 
+def on_swing_line(hand, p_mid, p_end, lag, back=0.0):
+    """The blade direction that starts a swing (hands at `hand`, through p_mid to p_end) already on
+    its circle, trailing by `lag` deg, wound a further `back` deg: a wind-up pose with nothing left
+    to turn when the swing starts."""
+    circle = Arc(hand, p_mid, p_end)
+    return about(circle.radial(0.0), circle.n, -(lag + back))
+
+
 def tip_speeds(c, baked, tip):
     """Blade-tip speed (studs/s, root space) per frame for a tip `tip` studs out from the fist."""
     tips = []

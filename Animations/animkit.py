@@ -41,6 +41,16 @@ def _norm(arr):
 
 
 WHIP = np.array(P["whip"])
+
+
+def _beta_cdf(a, b, n=241):
+    """Progress whose speed follows u^(a-1) (1-u)^(b-1): peaks at (a-1)/(a+b-2)."""
+    u = np.linspace(0, 1, n)
+    speed = u ** (a - 1) * (1 - u) ** (b - 1)
+    done = np.concatenate([[0.0], np.cumsum((speed[1:] + speed[:-1]) / 2)])
+    return done / done[-1]
+
+
 PROFILES = {
     "coil": np.array(P["coil"]),
     "whip": WHIP,
@@ -50,6 +60,8 @@ PROFILES = {
     "snap": _norm(WHIP[7:13]),  # the explosive middle of the whip
     "stop": _norm(WHIP[11:16]),  # the hard stop at the end of the whip
     "armstrike": np.array(P["arm_strike_z"]),  # the striking arm accelerating through impact
+    "heave": _beta_cdf(2.6, 1.8),  # a heavy weapon's swing: slow to start, fastest late, carried to rest
+    "slam": _beta_cdf(2.4, 1.15),  # a heavy weapon brought down: speeding up until it hits
     "ease": None,
     "linear": None,
     "accel": None,
