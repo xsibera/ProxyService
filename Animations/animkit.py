@@ -92,6 +92,18 @@ class Clip:
         # straight ahead) where channel-wise interpolation would wobble
         self.slerp = set()
 
+    def mirrored(self, name=None):
+        """The same clip performed with the other side of the body (left <-> right)."""
+        swap = {"RArm": "LArm", "LArm": "RArm", "RLeg": "LLeg", "LLeg": "RLeg"}
+        c = Clip(name or self.name, self.frames, self.hit, swap.get(self.arm, self.arm), self.joints)
+        c.peak, c.neck_auto, c.smooth, c.loop = self.peak, self.neck_auto, self.smooth, self.loop
+        c.markers = dict(self.markers)
+        c.slerp = {swap.get(j, j) for j in self.slerp}
+        for j, ks in self.keys.items():
+            for frame, vals, curve_in in ks:
+                c.key(swap.get(j, j), frame, mirror(vals), curve_in)
+        return c
+
     def key(self, joint, frame, vals, curve_in="ease"):
         v = list(vals) + [0.0] * (6 - len(vals))
         self.keys[joint].append((frame, np.array(v, float), curve_in))
@@ -140,8 +152,16 @@ class Clip:
 def euler_from_matrix(r, prev=None):
     """YXZ Euler angles (deg) of a rotation; with prev, the equivalent set closest to prev."""
     pitch = math.degrees(math.asin(max(-1.0, min(1.0, -r[1, 2]))))
-    yaw = math.degrees(math.atan2(r[0, 2], r[2, 2]))
-    roll = math.degrees(math.atan2(r[1, 0], r[1, 1]))
+    if math.hypot(r[1, 0], r[1, 1]) < 1e-7:
+        # gimbal lock (pitch +-90): only yaw -+ roll is defined, so keep roll where it was
+        roll = prev[2] if prev is not None else 0.0
+        if pitch > 0:
+            yaw = math.degrees(math.atan2(r[0, 1], r[0, 0])) + roll
+        else:
+            yaw = math.degrees(math.atan2(-r[0, 1], r[0, 0])) - roll
+    else:
+        yaw = math.degrees(math.atan2(r[0, 2], r[2, 2]))
+        roll = math.degrees(math.atan2(r[1, 0], r[1, 1]))
     if prev is None:
         return [pitch, yaw, roll]
     best = None
@@ -291,10 +311,7 @@ def from_transform(joint, pos, rot):
     """Motor6D Transform -> parent-space channels (inverse of to_transform)."""
     rc = np.array(C0_ROT[joint], float)
     pr = rc @ np.asarray(rot) @ rc.T
-    pitch = math.degrees(math.asin(max(-1.0, min(1.0, -pr[1, 2]))))
-    yaw = math.degrees(math.atan2(pr[0, 2], pr[2, 2]))
-    roll = math.degrees(math.atan2(pr[1, 0], pr[1, 1]))
-    return [pitch, yaw, roll] + list(rc @ np.asarray(pos))
+    return euler_from_matrix(pr) + list(rc @ np.asarray(pos))
 
 
 # --------------------------------------------------------------------------- XML export

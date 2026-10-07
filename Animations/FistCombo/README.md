@@ -7,9 +7,9 @@ These five M1 animations are built to match the style of the reference animation
 | `m1-1` | Lead jab (left hand), short coil, fastest whip | 0.83s | 0.33s |
 | `m1-2` | Rear overhand (right hand), chambers above the head, drops over the top | 0.83s | 0.40s |
 | `m1-3` | Lead hook (left hand), wide flat arc that wraps across the face, body tilts into it | 0.83s | 0.40s |
-| `m1-4` | Rear uppercut (right hand), sinks low, then explodes up and back | 0.83s | 0.42s |
-| `m1-5` | Finisher: spinning backfist (right hand), 330° pirouette, lands side-on and holds | 1.00s | 0.65s |
-| `m1 string (1,2,1,2,3)` | The full string (jab, overhand, jab, overhand, hook) in one clip, for previewing | 3.20s | 0.33, 0.88, 1.37, 1.92, 2.47s |
+| `m1-4` | Finisher: lead uppercut (left hand), sinks low, then explodes up and back | 0.83s | 0.42s |
+| `m1-5` | Spinning backfist (right hand), 330° pirouette, lands side-on and holds. Not in the string. | 1.00s | 0.65s |
+| `m1 string (1,2,1,2,4)` | The full string (jab, overhand, jab, overhand, uppercut) in one clip, for previewing | 3.20s | 0.33, 0.88, 1.37, 1.92, 2.48s |
 
 All five are R6, Priority **Action**, not looped, and baked at 60 fps with Linear easing, exactly like the references. The legs are keyed at **Weight 0**, as in the reference M1s, so your walk and idle keep driving them. Each clip has a `Hit` KeyframeMarker on its impact frame:
 
@@ -19,23 +19,23 @@ track:GetMarkerReachedSignal("Hit"):Connect(function() ... end)
 
 ## Files
 
-- `FistCombo.rbxm`: the reference "normal player" rig, renamed **Fist Combo Rig**, with the five hits and the `m1 string (1,2,1,2,3)` preview in `AnimSaves`.
+- `FistCombo.rbxm`: the reference "normal player" rig, renamed **Fist Combo Rig**, with the five hits and the `m1 string (1,2,1,2,4)` preview in `AnimSaves`.
 - `FistCombo.rbxmx`: the same thing in XML.
 - `previews/key_poses.png`: start, coil, load, impact, overshoot and held pose for every hit.
 - `previews/compare_realtime.gif`: the reference fist m1-1 next to all five hits, in real time.
-- `previews/m1_string.gif`: the `m1 string (1,2,1,2,3)` clip in real time.
+- `previews/m1_string.gif`: the `m1 string (1,2,1,2,4)` clip in real time.
 - `generate_combo.py`: the source that bakes all of the above. The shared machinery (curves, smoothing, R6 conversion, export) is in `../animkit.py`.
 - `../style_profiles.json`: curves measured from the reference, shared with the sword set.
 
 ## Using it
 
 1. In Studio, right-click Workspace → **Insert from File…** → `FistCombo.rbxm`.
-2. Select **Fist Combo Rig** and open the **Animation Editor**. The clips are under *Load* (`m1-1` … `m1-5`). Load `m1 string (1,2,1,2,3)` to watch the whole string in one go.
+2. Select **Fist Combo Rig** and open the **Animation Editor**. The clips are under *Load* (`m1-1` … `m1-5`). Load `m1 string (1,2,1,2,4)` to watch the whole string in one go.
 3. Publish each clip (**… → Publish to Roblox**) and put the IDs in your M1 handler. Each hit is meant to be cancelled into the next one, usually 0.45–0.6s after it starts. Play each one with `track:Play(0.15)` so the blend matches the string preview. The final pose is held until the clip ends, the same as the references.
 
 ## The string preview
 
-The M1 string is **m1-1, m1-2, m1-1, m1-2, m1-3**: jab, overhand, jab, overhand, then the hook as the finisher. `m1 string (1,2,1,2,3)` bakes it into one clip, the same way the Animator would play it in game. Each hit is cut about 0.15s after its impact (m1-1 at 0.48s, m1-2 at 0.55s) and crossfades into the next one over 0.15s. The hook plays out in full, then fades back to the rest pose over 0.3s. Every impact has its own `Hit` marker. It is only for previewing; in game, play the separate clips.
+The M1 string is **m1-1, m1-2, m1-1, m1-2, m1-4**: jab, overhand, jab, overhand, then the uppercut as the finisher. The uppercut is the rear uppercut mirrored onto the left hand (`Clip.mirrored()` in `../animkit.py`), so it comes straight off the right overhand. `m1 string (1,2,1,2,4)` bakes the string into one clip, the same way the Animator would play it in game. Each hit is cut about 0.15s after its impact (m1-1 at 0.48s, m1-2 at 0.55s) and crossfades into the next one over 0.15s. The uppercut plays out in full, then fades back to the rest pose over 0.3s. Every impact has its own `Hit` marker. It is only for previewing; in game, play the separate clips.
 
 ## What the reference style is (measured, not guessed)
 

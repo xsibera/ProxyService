@@ -8,7 +8,7 @@ An idle, an unsheathe and a 1, 2, 1, 2, finisher M1 string for a one-handed swor
 | `unsheathe` | Cross-draw from the left hip into the stance. | 1.00s | `Sheathe/Unsheathe` at 0.20s, when the hand takes the grip |
 | `m1-1` | Forehand: cocks the sword behind the right shoulder, then cuts over the top from high right to low left. | 0.83s | `Hit` at 0.43s |
 | `m1-2` | Backhand: cocks the sword over the left shoulder, then cuts back across from high left to low right. | 0.83s | `Hit` at 0.45s |
-| `m1-3` | Finisher: an overhead cleave. It rises with the sword straight up and the off hand aimed, then slams down into a planted lunge and holds. | 1.10s | `Hit` at 0.55s |
+| `m1-3` | Finisher: a lunging stab. It draws the sword back by the right side with the point toward the target and the off hand aiming, then drives a dead-straight thrust and holds the lunge. | 1.10s | `Hit` at 0.53s |
 | `m1 string (1,2,1,2,3)` | m1-1, m1-2, m1-1, m1-2, m1-3 in one clip, to preview the whole string. | 3.77s | `Hit` on all five impacts |
 
 Every clip is baked at 60 fps with Linear easing and Priority **Action**, the same as the references.
@@ -20,6 +20,7 @@ Every clip is baked at 60 fps with Linear easing and Priority **Action**, the sa
 - **Sword parts:** the blade, fuller, crossguard, pommel and a two-wedge point are welded to `Handle`. It's about 4.25 studs from the grip to the tip.
 - **Scabbard:** welded to the Torso. The hilt sits at the front of the left hip and the scabbard runs back and down along the outside of the left thigh.
 - **Physics:** no part collides and every part is massless.
+- **Legs:** every clip keys the legs at Weight 0, so your walk (or whatever else is playing) drives them.
 
 To use it on your own character, copy the `Sword` model, the `Handle` Motor6D and the `Scabbard` model over. Then set the Motor6D's `Part0` to your character's Right Arm and the scabbard welds' `Part0` to its Torso.
 
@@ -29,7 +30,14 @@ To use it on your own character, copy the `Sword` model, the `Handle` Motor6D an
 2. **Publish** each clip and put the IDs in your weapon handler.
 3. **Unsheathe:** until the `Sheathe/Unsheathe` marker, the animation holds the sword in the scabbard by itself. If you show a separate sheathed sword while unequipped, swap it for the real one on that marker.
 4. **M1s:** cancel each hit into the next about 0.15s after its `Hit` (m1-1 at 0.58s, m1-2 at 0.60s). Play every hit with `track:Play(0.15)` so the blend matches the string preview.
-5. **Legs:** m1-1, m1-2 and the unsheathe don't key the legs, just like the reference weapon M1s, so your walk and idle keep driving them. The finisher and the idle do key the legs, with planted feet: the legs lunge apart so the feet stay on the floor through the drop.
+5. **Legs:** no clip drives the legs. The finisher's lunge drops the torso 0.5 studs, so with the walk driving the legs, the feet dip that far below the floor during the lunge.
+
+## The stab and the wrist
+
+The slashes keep the wrist locked like the reference M1s. The stab is the one move that animates `Handle` as a wrist:
+- **Chamber:** the sword is turned in the fist so the point aims at the target while the arm hangs back.
+- **Thrust:** the fist travels a straight line in world space, whatever the torso is doing. The wrist turns the blade in line with the arm, so the point leads the whole way, and the arm slides out of the shoulder for reach.
+- **Smoothing:** the thrust is smoothed along its line, so it never bows.
 
 ## What was measured from the references
 
@@ -60,8 +68,8 @@ The sword clips were checked against those numbers. Tip speed is compared in bla
 | | Reference | This set |
 |---|---|---|
 | Forehand tip speed | 61.5 blade lengths/s (kareemandbeast m1-1) | 61.2 (m1-1) |
-| Backhand tip speed | 45.2 blade lengths/s (kareemandbeast m1-2) | 44.8 (m1-2) |
-| Sword arm peak | 1,480–2,530°/s | 1,600–2,080°/s |
+| Backhand tip speed | 45.2 blade lengths/s (kareemandbeast m1-2) | 46.2 (m1-2) |
+| Sword arm peak | 1,480–2,530°/s | 1,560–2,080°/s |
 | Draw tip speed | 88 studs/s (equip) | 97 studs/s (unsheathe) |
 | Hit after tip peak | 1–3 frames | 1–3 frames |
 
@@ -73,8 +81,8 @@ These clips get the same smoothing pass as the fist combo (see `../animkit.py`).
 |---|---|
 | `unsheathe` | 2.18x |
 | `m1-1` | 2.02x |
-| `m1-2` | 2.12x |
-| `m1-3` | 2.14x |
+| `m1-2` | 2.13x |
+| `m1-3` | 2.04x |
 
 The idle is built directly from smooth breathing waves, so it isn't smoothed.
 

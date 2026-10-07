@@ -9,8 +9,8 @@ Weapon conventions copied from the reference weapon rigs (dagger rig, kareemandb
   * Every clip keys the Handle pose under the Right Arm. The M1s keep the wrist all but locked; the
     unsheathe animates it to hold the sword in the scabbard until the hand grabs it, and fires a
     "Sheathe/Unsheathe" marker at the grab, like the reference equip.
-  * M1s and the unsheathe key the upper body only (no leg poses); the idle keys every joint, loops,
-    is 2.083s long and breathes once per loop, like the reference idles.
+  * Every clip keys the legs at Weight 0, so the walk (or whatever else is playing) drives them.
+  * The idle loops, is 2.083s long and breathes once per loop, like the reference idles.
 """
 
 import json
@@ -25,8 +25,10 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from animkit import (  # noqa: E402
     FPS,
+    SMOOTHNESS,
     Clip,
-    euler_from_matrix,
+    angular_jerk,
+    curve,
     build_string,
     clip_transforms,
     euler_yxz,
@@ -41,7 +43,6 @@ from animkit import (  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 JOINTS = ("Root", "Neck", "RArm", "LArm", "Handle")
-IDLE_JOINTS = JOINTS + ("RLeg", "LLeg")
 
 # --------------------------------------------------------------------------- R6 + weapon geometry
 ROOT_R = np.array([[-1, 0, 0], [0, 0, 1], [0, 1, 0]], float)
@@ -174,33 +175,6 @@ def arm(hand, blade):
     return [round(float(v), 4) for v in best[1]]
 
 
-def plant_legs(baked, front="LLeg", splay=6.0, stagger=0.0):
-    """Key both legs so the feet stay on the floor (HumanoidRootPart at the origin, floor at y=-3)
-    under whatever the torso does: each frame the front leg reaches forward and the back leg back,
-    just far enough to touch down, with the legs' yaw following the hips. `stagger` (deg) splits
-    the stance further apart on top of that."""
-    n = len(baked["Root"])
-    for leg in ("RLeg", "LLeg"):
-        side = 1 if leg == "RLeg" else -1
-        sign = 1 if leg == front else -1
-        rows = []
-        for f in range(n):
-            root = baked["Root"][f]
-            torso = joint_cf("Root", root)
-            hip = torso[:3, 3] + torso[:3, :3] @ np.array([side * 1.0, -1.0, 0.0])
-            best = None
-            for w in np.arange(0.0, 75.0, 0.25):
-                world = euler_yxz(sign * (w + stagger), root[1], -side * splay)
-                foot = hip + world @ np.array([-side * 0.5, -2.0, 0.0])
-                err = abs(foot[1] + 3.0)
-                if best is None or err < best[0]:
-                    best = (err, world)
-            rel = torso[:3, :3].T @ best[1]
-            rows.append(euler_from_matrix(rel, rows[-1] if rows else None) + [0.0, 0.0, 0.0])
-        baked[leg] = np.array(rows)
-    return baked
-
-
 def torso_dir(world, root):
     """A world-space direction expressed in Torso space for given Root channels."""
     return (joint_cf("Root", root)[:3, :3].T @ np.asarray(world, float)).tolist()
@@ -283,11 +257,12 @@ def m1_2():
     N(50, [-13, 0, -9], "drift")
     A = lambda f, hand, blade, k="ease": c.key("RArm", f, arm(hand, blade), k)
     A(4, [0.5, 0.2, -1.75], [-0.3, 0.9, -0.3])
-    A(9, [-0.9, 1.4, -1.5], [-0.31, 0.41, 0.86])
-    A(14, [-1.85, 1.75, 0.15], [0.15, -0.11, 0.98], "coil")  # cocked behind the left shoulder
-    A(22, [-1.95, 1.65, 0.55], [0.45, -0.31, 0.83], "slowin")
-    A(25, [-2.0, 1.3, -0.25], [0.07, -0.01, 1.0], "snap")
-    A(27, [-1.45, 0.55, -1.5], [-0.63, 0.27, 0.73], "armstrike")
+    A(9, [-1.4, 1.3, -2.12], [-0.31, 0.41, 0.86])
+    # cocked behind the left shoulder, held out toward the left side so the arm clears the head
+    A(14, [-2.15, 1.61, -0.58], [0.15, -0.11, 0.98], "coil")
+    A(22, [-2.59, 1.59, 0.07], [0.45, -0.31, 0.83], "slowin")
+    A(25, [-2.77, 1.32, -0.04], [0.07, -0.01, 1.0], "snap")
+    A(27, [-1.95, 0.48, -0.88], [-0.63, 0.27, 0.73], "armstrike")
     A(29, [-0.2, -0.1, -2.05], [-0.96, 0.2, 0.2], "stop")
     A(33, [1.55, -0.05, -1.4], [-0.82, 0.07, -0.56], "ease")
     A(45, [1.3, -0.35, -1.25], [-0.81, 0.28, -0.52], "settle")
@@ -303,47 +278,144 @@ def m1_2():
     return c
 
 
+def aim(hand, blade, arm_dir=None):
+    """Right Arm + Handle channels for a free wrist: the fist sits at `hand` with the arm pointing
+    along `arm_dir` (default: from the shoulder to the fist), twisting as little as possible from
+    hanging at rest, and the Handle turns the sword in the fist so the blade points along `blade`,
+    edges up and down. All in Torso space."""
+    c0, c1 = MOTORS["RArm"]
+    pivot = c0[:3, 3]
+    hand = np.asarray(hand, float)
+    a = np.asarray(arm_dir, float) if arm_dir is not None else hand - pivot
+    a = a / np.linalg.norm(a)
+    rest = np.array([0.0, -1.0, 0.0])
+    axis = np.cross(rest, a)
+    s, c = np.linalg.norm(axis), float(rest @ a)
+    if s < 1e-9:
+        rot = np.eye(3)
+    else:
+        k = axis / s
+        kx = np.array([[0, -k[2], k[1]], [k[2], 0, -k[0]], [-k[1], k[0], 0]])
+        rot = np.eye(3) + s * kx + (1 - c) * kx @ kx
+    arm_cf = cf(hand - rot @ GRIP[:3, 3], rot)
+    t = inv(c0) @ arm_cf @ c1
+    arm_ch = from_transform("RArm", t[:3, 3], t[:3, :3])
+    z = -np.asarray(blade, float) / np.linalg.norm(blade)
+    up = np.array([0.0, 1.0, 0.0]) if abs(z[1]) < 0.9 else -a
+    y = up - z * (up @ z)
+    y /= np.linalg.norm(y)
+    sword = np.column_stack([np.cross(y, z), y, z])
+    handle_ch = from_transform("Handle", np.zeros(3), rot.T @ sword)
+    return [round(float(v), 4) for v in arm_ch], [round(float(v), 4) for v in handle_ch]
+
+
 def m1_3():
-    """Finisher: overhead cleave. Rises and leans back with the sword cocked straight up behind the
-    head and the off hand aiming at the target, holds it loaded, then slams it over the top and
-    down through the target, dropping low and folding forward over the strike."""
-    c = Clip("m1-3", 66, hit=33, arm="RArm", joints=IDLE_JOINTS)
-    c.slerp = {"RArm"}
+    """Finisher: a lunging stab. Draws the sword back by the right side with the point turned toward
+    the target and the off hand aiming, holds it loaded, then drives the whole body behind a dead
+    straight thrust. Through the thrust the fist travels a straight line in world space and the
+    wrist (Handle) keeps the blade pointing down that line, so the point leads all the way; the arm
+    shoots out of the shoulder for reach and the lunge is held."""
+    c = Clip("m1-3", 66, hit=32, arm="RArm", joints=JOINTS)
+    c.slerp = {"RArm", "Handle"}
     stance_keys(c)
+    c.key("Handle", 0, [0, 0, 0, 0, 0, 0])
     R = lambda f, v, k="ease": c.key("Root", f, v, k)
-    R(16, [16, -24, 6, 0, -0.04, 0.3], "coil")  # rises up and back
-    R(26, [19, -28, 7, 0, -0.02, 0.34], "slowin")
-    R(36, [-30, 14, -6, 0, -0.78, -0.42], "snap")  # slams down and forward
-    R(40, [-33, 12, -7, 0, -0.84, -0.46], "stop")
-    R(56, [-24, 10, -4, 0, -0.62, -0.32], "settle")
-    R(66, [-25, 10, -4, 0, -0.63, -0.32], "drift")
+    R(16, [6, -40, 6, 0, -0.3, 0.36], "coil")  # turns the right side away, sits back
+    R(24, [7, -46, 7, 0, -0.32, 0.42], "slowin")
+    R(33, [-20, 40, -8, 0, -0.48, -0.66], "snap")  # drives the right shoulder through the target
+    R(37, [-23, 46, -10, 0, -0.5, -0.74], "stop")
+    R(52, [-17, 38, -6, 0, -0.44, -0.56], "settle")
+    R(66, [-18, 39, -6, 0, -0.45, -0.56], "drift")
     N = lambda f, v, k="ease": c.key("Neck", f, v, k)
-    N(16, [-14, 0, -2], "coil")  # eyes stay on the target over the raised blade
-    N(26, [-16, 0, -2], "slowin")
-    N(33, [-2, 0, 3], "snap")
-    N(40, [8, 0, 4], "stop")  # head comes up against the forward fold
-    N(56, [4, 0, 2], "settle")
-    N(66, [5, 0, 2], "drift")
-    A = lambda f, hand, blade, k="ease": c.key("RArm", f, arm(hand, blade), k)
-    A(5, [0.7, -0.15, -1.75], [-0.05, 0.75, -0.66])  # counter-move: blade tips toward the target
-    A(16, [1.2, 2.03, 0.58], [-0.1, -0.38, 0.92], "coil")  # straight up, blade hanging down the back
-    A(26, [1.18, 2.05, 0.75], [-0.08, -0.5, 0.86], "slowin")
-    A(30, [1.17, 1.43, -1.41], [0.0, 0.83, 0.56], "snap")  # over the top
-    A(33, [1.1, -0.85, -1.05], [0.0, 0.62, -0.78], "armstrike")  # through the target
-    A(36, [1.08, -1.0, -0.3], [0.0, 0.42, -0.91], "stop")  # stops with the point just off the floor
-    A(40, [1.08, -1.0, -0.4], [0.0, 0.47, -0.88], "ease")
-    A(56, [1.06, -0.98, -0.45], [0.0, 0.5, -0.87], "settle")
-    A(66, [1.06, -0.98, -0.44], [0.0, 0.5, -0.87], "drift")
+    N(16, [-8, 0, -4], "coil")
+    N(24, [-9, 0, -4], "slowin")
+    N(30, [-14, 0, 6], "snap")
+    N(37, [-16, 0, 8], "stop")
+    N(52, [-12, 0, 5], "settle")
+    N(66, [-13, 0, 5], "drift")
     L = lambda f, v, k="ease": c.key("LArm", f, v, k)
-    L(6, [48, -20, -24, 0.16, 0.08, -0.36])
-    L(16, [92, -22, -12, 0.2, 0.28, -0.6], "coil")  # aims at the target
-    L(26, [96, -24, -12, 0.2, 0.3, -0.62], "slowin")
-    L(33, [10, -30, -46, 0.24, -0.2, 0.36], "snap")  # thrown back and out for the slam
-    L(40, [-6, -34, -52, 0.28, -0.26, 0.48], "stop")
-    L(56, [2, -30, -48, 0.26, -0.22, 0.42], "settle")
-    L(66, [2, -31, -48, 0.26, -0.23, 0.43], "drift")
-    # a big slam needs planted feet: the legs lunge apart (left foot forward) to take the drop
-    c.baked = plant_legs(c.bake(), stagger=STAGGER)
+    L(6, [40, -16, -22, 0.14, 0.06, -0.3])
+    L(16, [86, -10, -14, 0.18, 0.26, -0.6], "coil")  # aims at the target
+    L(24, [88, -12, -14, 0.18, 0.28, -0.62], "slowin")
+    L(30, [-18, -24, -40, 0.2, -0.24, 0.42], "snap")  # thrown back for the lunge
+    L(37, [-28, -28, -46, 0.24, -0.28, 0.5], "stop")
+    L(52, [-20, -26, -44, 0.22, -0.26, 0.46], "settle")
+    L(66, [-20, -27, -44, 0.22, -0.26, 0.47], "drift")
+
+    def A(f, hand, blade, k="ease"):
+        arm_ch, handle_ch = aim(hand, blade)
+        c.key("RArm", f, arm_ch, k)
+        c.key("Handle", f, handle_ch, k)
+
+    # the root's path, to place the fist on the thrust line in world space frame by frame
+    path = Clip("root", c.frames, None, "RArm")
+    path.keys["Root"] = c.keys["Root"]
+    path.neck_auto = path.smooth = False
+    roots = path.bake()["Root"]
+    torso = lambda f: joint_cf("Root", roots[f])
+
+    chamber = np.array([2.2, 0.0, 0.4])  # out by the right side, clear of the body
+    start = (torso(24) @ np.append(chamber, 1))[:3]
+    target = np.array([0.8, 0.5, -6.0])  # chest height, straight ahead (the sword side leads)
+    line = (target - start) / np.linalg.norm(target - start)
+    end = start + line * ((start[2] + 2.4) / -line[2])  # fist ends 2.4 studs in front
+    to_torso = lambda f, p: (inv(torso(f)) @ np.append(p, 1))[:3]
+    dir_torso = lambda f, d: torso(f)[:3, :3].T @ d
+
+    A(5, [0.75, -0.05, -1.7], torso_dir([0, 0.75, -0.66], STANCE_ROOT))  # counter-move: point dips
+    A(16, to_torso(16, start + [0.05, -0.02, -0.25]), dir_torso(16, line), "coil")
+    # the arm swings from hanging back at the chamber to pointing down the line; it is turned
+    # smoothly with the thrust rather than aimed at the fist, which passes close to the shoulder
+    pivot = MOTORS["RArm"][0][:3, 3]
+    drawn = (chamber - pivot) / np.linalg.norm(chamber - pivot)
+
+    def swing(out, u):
+        """Arm direction a fraction u of the way from drawn back to pointing along `out`."""
+        t = min(1.0, max(0.0, u))
+        th = math.acos(max(-1.0, min(1.0, float(drawn @ out))))
+        return (math.sin((1 - t) * th) * drawn + math.sin(t * th) * out) / math.sin(th)
+
+    reach = {}  # thrust progress along the line, shaped like the reference whip, then held
+    for f in range(24, 34):
+        reach[f] = curve("whip", (f - 24) / 9)
+    for f in range(34, 38):
+        reach[f] = 1 + 0.06 * curve("stop", (f - 33) / 4)
+    for f in range(38, 53):
+        reach[f] = 1.06 - 0.1 * curve("settle", (f - 37) / 15)
+    for f in range(53, 67):
+        reach[f] = 0.96 + 0.01 * curve("drift", (f - 52) / 14)
+    for f, u in reach.items():
+        out = dir_torso(f, line)
+        arm_ch, handle_ch = aim(to_torso(f, start + (end - start) * u), out, swing(out, u))
+        c.key("RArm", f, arm_ch, "linear")
+        c.key("Handle", f, handle_ch, "linear")
+    # Smoothing the arm and the wrist separately would bow the line, so the thrust is placed exactly
+    # on the final torso instead, and smoothed along the line: its progress gets the lightest
+    # Gaussian that makes the clip SMOOTHNESS times smoother than the raw keys, like every other clip.
+    def place(baked, progress):
+        for f, u in progress.items():
+            t = joint_cf("Root", baked["Root"][f])
+            hand = (inv(t) @ np.append(start + (end - start) * u, 1))[:3]
+            out = t[:3, :3].T @ line
+            baked["RArm"][f], baked["Handle"][f] = aim(hand, out, swing(out, u))
+        return baked
+
+    c.smooth = False
+    raw = place(c.bake(), reach)
+    c.smooth = True
+    smoothed = c.bake()
+    frames = sorted(reach)
+    u = np.array([reach[f] for f in frames])
+    for sigma in np.arange(0.3, 3.01, 0.1):
+        r = int(math.ceil(3 * sigma))
+        k = np.exp(-0.5 * (np.arange(-r, r + 1) / sigma) ** 2)
+        padded = np.concatenate([np.zeros(r), u, np.full(r, u[-1])])  # held drawn before the thrust
+        out = place({j: v.copy() for j, v in smoothed.items()}, dict(zip(frames, np.convolve(padded, k / k.sum(), "valid"))))
+        factor = angular_jerk(raw) / angular_jerk(out)
+        if factor >= SMOOTHNESS:
+            break
+    c.smoothing = (round(float(sigma), 2), factor)
+    c.baked = out
     return c
 
 
@@ -351,14 +423,13 @@ M1S = [m1_1, m1_2, m1_3]
 
 # --------------------------------------------------------------------------- idle
 IDLE_FRAMES = 125  # 2.083s, one breath per loop, like the reference idles
-STAGGER = 4.0  # deg the feet sit further apart than they need to touch down (left foot forward)
 
 
 def idle():
     """The stance, breathing. Measured from the reference idles: the torso rocks 1.1 deg either
     side of its lean and bobs 0.012 studs, the head follows ~0.2s later, the free arm sways ~1 deg
     and the weapon arm ~2.5 deg against the torso."""
-    c = Clip("idle", IDLE_FRAMES, hit=None, arm="RArm", joints=IDLE_JOINTS)
+    c = Clip("idle", IDLE_FRAMES, hit=None, arm="RArm", joints=JOINTS)
     c.smooth = False
     c.loop = True
     stance_keys(c)
@@ -374,7 +445,7 @@ def idle():
     baked["LArm"][:, 0] -= 1.0 * wave(0.1)
     baked["LArm"][:, 2] -= 0.6 * wave(0.15)
     baked["Handle"][:, 0] += 1.5 * wave(0.25)  # the blade tip drifts with the breath
-    c.baked = plant_legs(baked, stagger=STAGGER)
+    c.baked = baked
     return c
 
 
@@ -583,15 +654,12 @@ def build(rig_source, out_dir=HERE):
         data[c.name] = {"hit": c.hit, "frames": c.frames, "loop": c.loop, "channels": {j: baked[j].tolist() for j in c.joints}}
         if c.smoothing:
             print("%s: strike sigma %.2f, jerk cut x%.2f" % ((c.name,) + c.smoothing))
-        sequences.append(sequence_xml(c.name, frames, c.markers, loop=c.loop, zero_weight=()))
-    # the preview string holds the stance's legs wherever a clip leaves them to the walk/idle
+        sequences.append(sequence_xml(c.name, frames, c.markers, loop=c.loop))
     stance = by_name["idle"][1][0]
-    chain = []
-    for n in STRING_ORDER:
-        c, frames = by_name[n]
-        chain.append((c, [{**{j: stance[j] for j in IDLE_JOINTS}, **fr} for fr in frames]))
-    string_frames, string_hits = build_string(chain, STRING_CANCEL, STRING_FADE, STRING_END_FADE, stance, stance)
-    sequences.append(sequence_xml(STRING_NAME, string_frames, string_hits, zero_weight=()))
+    string_frames, string_hits = build_string(
+        [by_name[n] for n in STRING_ORDER], STRING_CANCEL, STRING_FADE, STRING_END_FADE, stance, stance
+    )
+    sequences.append(sequence_xml(STRING_NAME, string_frames, string_hits))
     json.dump(data, open(os.path.join(out_dir, "sword_data.json"), "w"))
 
     rig, saves = reference_rig(rig_source, "Sword Rig")

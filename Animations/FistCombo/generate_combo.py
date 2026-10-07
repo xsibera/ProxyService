@@ -167,7 +167,7 @@ def m1_3():
     return c
 
 
-def m1_4():
+def _rear_uppercut():
     """Rear (right) uppercut: sinks low and forward, then explodes up and back on the rising fist."""
     c = Clip("m1-4", 50, hit=25, arm="RArm")
     R = lambda f, v, k="ease": c.key("Root", f, v, k)
@@ -207,6 +207,12 @@ def m1_4():
     L(45, [8, -14, -52, 0.34, -0.34, 0.56], "settle")
     L(50, [8, -16, -52, 0.34, -0.35, 0.57], "drift")
     return c
+
+
+def m1_4():
+    """Finisher: the uppercut thrown with the left hand (the rear uppercut, mirrored), so it comes
+    straight off the right overhand of m1-2."""
+    return _rear_uppercut().mirrored()
 
 
 def m1_5():
@@ -261,8 +267,8 @@ CLIPS = [m1_1, m1_2, m1_3, m1_4, m1_5]
 # --------------------------------------------------------------------------- full-string preview
 # Every hit is cancelled into the next one this long after it starts (about 0.15s after its
 # impact), crossfading over STRING_FADE (use AnimationTrack:Play(0.15) in game for the same blend).
-STRING_NAME = "m1 string (1,2,1,2,3)"
-STRING_ORDER = ["m1-1", "m1-2", "m1-1", "m1-2", "m1-3"]
+STRING_NAME = "m1 string (1,2,1,2,4)"
+STRING_ORDER = ["m1-1", "m1-2", "m1-1", "m1-2", "m1-4"]
 STRING_CANCEL = {"m1-1": 0.48, "m1-2": 0.55, "m1-3": 0.55, "m1-4": 0.58}
 STRING_FADE = 0.15
 STRING_END_FADE = 0.3
