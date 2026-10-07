@@ -10,15 +10,33 @@ Gon's Jajanken from Hunter x Hunter as a working Roblox ability, with animations
 
 **Charging:** tap the key for a quick cast, or hold it for up to **3 seconds** for full power. Letting go at any point casts it, and at full charge it casts by itself. Damage, knockback, hitbox size, the ball's speed, range and blast, and the effects all scale with how long you held it. While you hold, Gon chants "Saisho wa guu… Jan… Ken…" over a charge bar, then shouts GUU! / PAA! / CHII! on release.
 
-Gamepad uses X / Y / B. Touch devices get on-screen buttons.
+Gamepad uses X / Y / B. Touch devices get on-screen buttons. In the ability place, the keys are the hotbar's slots: press **M** and pick the **Gon** preset (Rock, Paper, Scissors on Z, X, C), or put any of them on any key (see [Loadout](../Loadout/README.md)).
+
+**In a parry-style fight** (when the place has [the parry system](../Combat/README.md), as the ability place does):
+- Every Jajanken hit can be **blocked** (F) or **parried** (tap F just before it lands, and Gon staggers).
+- A **fully charged Rock breaks a guard** outright.
+- The longer the charge, the longer the stun on a clean hit.
+- Getting hit while charging cuts the charge short.
+- You can't charge while blocking or stunned.
 
 ## Files
 
-- **`Jajanken.rbxl`**: a ready-to-play place. Open it in Studio and press **Play**. It contains:
-  - everything already in the right services;
-  - an R6 test ground with four dummies, which stand back up after 3s, and three pillars to throw Paper at;
-  - damage numbers;
-  - the animation rig.
+- **`Jajanken.rbxl`**: the ability place. Open it in Studio and press **Play**. It contains:
+  - Gon's Jajanken;
+  - **Killua's lightning** ([Killua](../Killua/README.md));
+  - the **parry system** (F to block, tap F to parry);
+  - the **ability menu** (M) and hotbar.
+
+  You start with Killua's abilities: press M and pick the Gon preset for Jajanken, or mix them. The R6 test ground has:
+  - four plain dummies, and three pillars to throw Paper at;
+  - **training dummies** for the parry system:
+    - a **Blocking Dummy** that keeps its guard up and turns to face you, though not instantly, so you can get behind it;
+    - a **Parrying Dummy** that parries everything it sees coming;
+    - a **Sparring Dummy** that throws a telegraphed punch (it glows red and pulls its arm back) for you to parry or counter.
+  - damage numbers for every hit (damage, BLOCKED, COUNTER, EVADED);
+  - both animation rigs.
+
+  Dummies stand back up after 3s.
 - **`Jajanken.rbxm`**: the same ability as a kit for your own game. It's one folder of labelled folders, each named for where its contents go:
 
   | Folder in the kit | Put it in |
@@ -27,6 +45,8 @@ Gamepad uses X / Y / B. Touch devices get on-screen buttons.
   | `2. Put JajankenServer in ServerScriptService` | `JajankenServer` → **ServerScriptService** |
   | `3. Put JajankenClient in StarterPlayer - StarterPlayerScripts` | `JajankenClient` → **StarterPlayer › StarterPlayerScripts** |
   | `4. Optional - Workspace` | the animation rig (for publishing) and a test dummy |
+  | `5. Optional - the parry system (Combat)` | `Combat` → ReplicatedStorage, `CombatServer` → ServerScriptService, `CombatClient` → StarterPlayerScripts |
+  | `6. Optional - the ability menu (Loadout)` | `Loadout` → ReplicatedStorage, `LoadoutServer` → ServerScriptService, `LoadoutClient` → StarterPlayerScripts |
 
   The kit also has a `READ ME` script with the same instructions. Your game needs **R6** avatars (Game Settings › Avatar).
 
@@ -73,6 +93,8 @@ The client asks with `Charge` and `Release`, plays the animations, and draws:
 - **Your own charge:** your aura and charge bar show the instant you press.
 - **Everyone else's:** other players' charges, casts, hits and the ball come from the server's broadcasts.
 - **Timing:** they're timed with `workspace:GetServerTimeNow()`, so the ball flies along the server's line on every screen.
+
+With the parry system in the place, every hit goes through `Combat.resolve` instead (block, parry, guard, stun), and each cast is announced to it (`Combat.announce`). With the menu, only equipped modes can be cast. Both are optional: without them it plays exactly as before.
 
 Other server scripts can react to hits, for stun, combos, quests and so on:
 
@@ -160,8 +182,8 @@ The textures can't be downloaded here, so the effects were tuned from your emitt
   - `JajankenVFX.luau`
   - `JajankenServer.server.luau`
   - `JajankenClient.client.luau`
-  - the test area's `DummyRespawn` and `DamageNumbers`.
-- `place.project.json` + `build.sh`: build the `.rbxl` with Rojo.
+  - the test area's `DummyRespawn`, `DummyBrains` (the training dummies) and `DamageNumbers`.
+- `place.project.json` + `build.sh`: build the ability place with Rojo, including Killua, Combat and Loadout from their folders. `build.sh` builds those too, and both kits (`Jajanken.rbxm` and `../Killua/Killua.rbxm`).
 
 ```bash
 ./build.sh path/to/ANIMSFORCLAUDE.rbxmx path/to/nen.rbxmx path/to/rbxconv   # rbxconv: any rbx-dom rbxmx -> rbxm converter
@@ -181,3 +203,10 @@ There are headless tests against Place1's mock engine (`luaurun`, see `Place1/RE
   - the bar and chant, release and auto-release;
   - every server event drawn with the real effect tree: other players' charges, the ball's flight, bursts, hits and denials;
   - dying mid-charge.
+- `luaurun tests/combat.luau`, 22 checks, with the parry system and the menu:
+  - casts announced, and busy while they play out;
+  - blocked, parried, and a full Rock breaking a guard;
+  - a stun cutting a charge short;
+  - no charging while blocking or stunned;
+  - only equipped modes.
+- `luaurun tests/dummies.luau`, 23 checks: the training dummies' blocking and turning, parrying, telegraphed punches (landing, and being parried), and respawned dummies.

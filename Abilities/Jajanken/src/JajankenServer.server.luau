@@ -17,6 +17,9 @@
 
 	Other server scripts can listen for hits:
 		ServerScriptService.JajankenServer.OnHit.Event:Connect(function(attacker, victim, mode, damage, charge) end)
+
+	When the place has ReplicatedStorage.Combat, every hit goes through it (block, parry, guard, stun)
+	and a stun cuts a charge short; with ReplicatedStorage.Loadout, only equipped modes can be cast.
 ]]
 
 if not script:IsDescendantOf(game:GetService("ServerScriptService")) then
@@ -31,6 +34,14 @@ local RunService = game:GetService("RunService")
 local Jajanken = ReplicatedStorage:WaitForChild("Jajanken")
 local Config = require(Jajanken:WaitForChild("Config")) :: any
 local Remote = Jajanken:WaitForChild("Remote") :: RemoteEvent
+
+local function optional(folderName: string, moduleName: string): any
+	local folder = ReplicatedStorage:FindFirstChild(folderName)
+	local module = folder and folder:FindFirstChild(moduleName)
+	return if module and module:IsA("ModuleScript") then require(module) :: any else nil
+end
+local Combat = optional("Combat", "Combat")
+local Loadout = optional("Loadout", "Loadout")
 
 local OnHit = Instance.new("BindableEvent")
 OnHit.Name = "OnHit"
@@ -69,6 +80,9 @@ local function finish(player: Player, state: State)
 	end
 	if state.humanoid.Parent and state.humanoid.WalkSpeed == Config.ChargeWalkSpeed then
 		state.humanoid.WalkSpeed = state.walkSpeed
+	end
+	if Combat then
+		Combat.clearBusy(state.character)
 	end
 end
 
@@ -148,12 +162,29 @@ local function hit(
 	mode: string,
 	damage: number,
 	charge: number,
-	push: Vector3
+	push: Vector3,
+	from: Vector3?
 )
-	humanoid:TakeDamage(damage)
-	knockback(model, push)
 	local root = model:FindFirstChild("HumanoidRootPart")
 	local at = if root and root:IsA("BasePart") then root.Position else model:GetPivot().Position
+	if Combat and attacker.Character then
+		-- a parry-style fight: it can be blocked or parried; a fully charged Rock breaks a guard
+		local outcome = Combat.resolve(attacker.Character, model, {
+			Damage = damage,
+			Ability = mode,
+			Knockback = push,
+			Stun = 0.35 + 0.45 * charge,
+			GuardDamage = damage * 2,
+			GuardBreak = mode == "Rock" and charge >= 0.95,
+			From = from,
+		})
+		if outcome ~= "Hit" and outcome ~= "Blocked" then
+			return
+		end
+	else
+		humanoid:TakeDamage(damage)
+		knockback(model, push)
+	end
 	Remote:FireAllClients("Hit", model, mode, at, if push.Magnitude > 0 then push.Unit else Vector3.yAxis)
 	OnHit:Fire(attacker, model, mode, damage, charge)
 end
@@ -225,7 +256,16 @@ local function throwPaper(player: Player, state: State, charge: number, aim: any
 			local falloff = 1 - 0.5 * math.clamp(away.Magnitude / blast, 0, 1)
 			local outward = if away.Magnitude > 0.1 then away.Unit else direction
 			local velocity = (outward * 0.7 + direction * 0.5).Unit * push * falloff
-			hit(player, model, humanoid, "Paper", damage * falloff, charge, velocity + Vector3.new(0, push * 0.3, 0))
+			hit(
+				player,
+				model,
+				humanoid,
+				"Paper",
+				damage * falloff,
+				charge,
+				velocity + Vector3.new(0, push * 0.3, 0),
+				at
+			)
 		end
 	end
 
@@ -259,6 +299,9 @@ local function cast(player: Player, state: State, aim: any)
 	ready[mode] = now + Config.Cooldown[mode]
 	ready.All = now + Config.SharedCooldown
 	Remote:FireAllClients("Cast", player, mode, charge, workspace:GetServerTimeNow() + settings.HitDelay)
+	if Combat then
+		Combat.announce(state.character, workspace:GetServerTimeNow() + settings.HitDelay, mode)
+	end
 
 	task.delay(settings.HitDelay, function()
 		if states[player] ~= state or not alive(state) then
@@ -285,6 +328,13 @@ local function startCharge(player: Player, mode: string)
 	if not (character and humanoid and humanoid.Health > 0 and root and root:IsA("BasePart")) then
 		return
 	end
+	if Loadout and not Loadout.has(player, mode) then
+		return
+	end
+	if Combat and not Combat.canAct(character) then
+		Remote:FireClient(player, "Denied", mode, 0)
+		return
+	end
 	local now = os.clock()
 	local ready = readyAt[player] or {}
 	readyAt[player] = ready
@@ -305,6 +355,9 @@ local function startCharge(player: Player, mode: string)
 		died = nil,
 	}
 	states[player] = state
+	if Combat then
+		Combat.setBusy(character) -- until the cast is over: no blocking, no other ability
+	end
 	humanoid.WalkSpeed = Config.ChargeWalkSpeed
 	state.died = humanoid.Died:Connect(function()
 		cancel(player)
@@ -338,6 +391,17 @@ Remote.OnServerEvent:Connect(function(player: Player, action: any, value: any)
 		cancel(player)
 	end
 end)
+
+if Combat then
+	-- stunned (hit, parried, guard broken): the charge or the cast is cut short
+	Combat.Interrupted.Event:Connect(function(model: Instance)
+		for player, state in states do
+			if state.character == model then
+				cancel(player)
+			end
+		end
+	end)
+end
 
 Players.PlayerRemoving:Connect(function(player: Player)
 	cancel(player)

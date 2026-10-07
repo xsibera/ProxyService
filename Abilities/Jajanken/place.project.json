@@ -17,8 +17,16 @@
         "ClockTime": 15.2,
         "GeographicLatitude": 32,
         "Brightness": 3,
-        "Ambient": [0.2, 0.21, 0.24],
-        "OutdoorAmbient": [0.5, 0.5, 0.55],
+        "Ambient": [
+          0.2,
+          0.21,
+          0.24
+        ],
+        "OutdoorAmbient": [
+          0.5,
+          0.5,
+          0.55
+        ],
         "EnvironmentDiffuseScale": 1,
         "EnvironmentSpecularScale": 1,
         "ShadowSoftness": 0.25,
@@ -29,8 +37,16 @@
         "$properties": {
           "Density": 0.28,
           "Offset": 0.2,
-          "Color": [0.78, 0.78, 0.82],
-          "Decay": [0.42, 0.44, 0.49],
+          "Color": [
+            0.78,
+            0.78,
+            0.82
+          ],
+          "Decay": [
+            0.42,
+            0.44,
+            0.49
+          ],
           "Glare": 0.15,
           "Haze": 1.2
         }
@@ -49,6 +65,15 @@
       "$className": "ReplicatedStorage",
       "Jajanken": {
         "$path": "build/Jajanken.rbxmx"
+      },
+      "Killua": {
+        "$path": "../Killua/build/Killua.rbxmx"
+      },
+      "Combat": {
+        "$path": "../Combat/build/Combat.rbxmx"
+      },
+      "Loadout": {
+        "$path": "../Loadout/build/Loadout.rbxmx"
       }
     },
 
@@ -56,6 +81,15 @@
       "$className": "ServerScriptService",
       "JajankenServer": {
         "$path": "src/JajankenServer.server.luau"
+      },
+      "KilluaServer": {
+        "$path": "../Killua/src/KilluaServer.server.luau"
+      },
+      "CombatServer": {
+        "$path": "../Combat/src/CombatServer.server.luau"
+      },
+      "LoadoutServer": {
+        "$path": "../Loadout/src/LoadoutServer.server.luau"
       }
     },
 
@@ -73,6 +107,15 @@
         "$className": "StarterPlayerScripts",
         "JajankenClient": {
           "$path": "src/JajankenClient.client.luau"
+        },
+        "KilluaClient": {
+          "$path": "../Killua/src/KilluaClient.client.luau"
+        },
+        "CombatClient": {
+          "$path": "../Combat/src/CombatClient.client.luau"
+        },
+        "LoadoutClient": {
+          "$path": "../Loadout/src/LoadoutClient.client.luau"
         }
       }
     }

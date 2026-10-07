@@ -5,9 +5,13 @@
 ANIMSFORCLAUDE gives the R6 rig, and nen.rbxmx (VFXFORCLAUDE + the nen auras) gives the emitters the
 effects are built from. Writes into build/:
   Jajanken.rbxmx       the ReplicatedStorage folder (Config, JajankenVFX + effects + sounds, Animations, Remote)
-  TestArea.rbxmx       the test ground for the place: floor, spawn, pillars, dummies, the animation rig
+  TestArea.rbxmx       the test ground for the place: floor, spawn, pillars, dummies (plain ones and
+                       the parry system's training dummies), the animation rigs (Gon's, and Killua's
+                       from ../Killua/build when it has been built)
 and next to this file:
   Jajanken.rbxmx       the labelled kit: folders named for where each piece goes in your own game
+                       (with the parry system and the ability menu from ../Combat/build and
+                       ../Loadout/build, when they have been built)
   tests/effects_tree.luau   the effect tree as data, for the tests
 Then ./build.sh turns them into Jajanken.rbxl (Rojo, place.project.json) and Jajanken.rbxm.
 """
@@ -27,6 +31,7 @@ from animkit import FPS, build_string, clip_transforms, ref, reference_rig, sequ
 
 BUILD = os.path.join(HERE, "build")
 SRC = os.path.join(HERE, "src")
+ABILITIES = os.path.dirname(HERE)
 
 # the Animation objects the client loads, by name -> the KeyframeSequence inside
 ANIMATIONS = {
@@ -248,8 +253,15 @@ def test_area(rig_source, game, previews):
         dummy(rig_source, "Dummy", (-6, 4), 180),
         dummy(rig_source, "Dummy", (6, 4), 180),
         dummy(rig_source, "Dummy (far, for Paper)", (0, -30), 180),
+        # the parry system's training dummies (DummyBrains gives them their behaviour, by name)
+        dummy(rig_source, "Blocking Dummy", (-22, 0), 180),
+        dummy(rig_source, "Parrying Dummy", (22, 0), 180),
+        dummy(rig_source, "Sparring Dummy", (0, -14), 180),
     ]
-    dummy_model = item("Model", "Test Dummies", dummies + [script("Script", "DummyRespawn", "DummyRespawn.server.luau")])
+    dummy_model = item("Model", "Test Dummies", dummies + [
+        script("Script", "DummyRespawn", "DummyRespawn.server.luau"),
+        script("Script", "DummyBrains", "DummyBrains.server.luau"),
+    ])
     rig, saves = reference_rig(rig_source, "Jajanken Animation Rig")
     for name in ANIMATIONS.values():
         saves.append(copy.deepcopy(game[name]))
@@ -257,7 +269,25 @@ def test_area(rig_source, game, previews):
         saves.append(copy.deepcopy(p))
     rig = _reref(moved(rig, at(-24, 3, 24, 90)))
     numbers = script("Script", "DamageNumbers", "DamageNumbers.server.luau")
-    return item("Model", "Jajanken Test Area", [floor, spawn, pillars, dummy_model, rig, numbers])
+    children = [floor, spawn, pillars, dummy_model, rig, numbers]
+    killua_rig = built(os.path.join("Killua", "build", "KilluaRig.rbxmx"))
+    if killua_rig is not None:
+        children.append(_reref(moved(killua_rig, at(24, 3, 24, -90))))
+    return item("Model", "Jajanken Test Area", children)
+
+
+def built(path):
+    """The top instance of another package's build output (../<path>), or None if it isn't built."""
+    full = os.path.join(ABILITIES, path)
+    if not os.path.exists(full):
+        print("  (not built, skipped: %s)" % path)
+        return None
+    return copy.deepcopy(ET.parse(full).getroot().find("Item"))
+
+
+def other_script(cls, name, package, filename):
+    return item(cls, name, Source=("ProtectedString", open(os.path.join(ABILITIES, package, "src", filename)).read()),
+                Disabled=("bool", "false"))
 
 
 # --------------------------------------------------------------------------- the labelled kit
@@ -271,6 +301,14 @@ README = """--[[
 	     Jajanken Animation Rig  - open it in the Animation Editor to publish the five animations,
 	                               then paste their ids into Jajanken.Config.Animations
 	     Test Dummy              - something to hit
+
+	5. Optional, for a parry-style fight: the Combat folder -> ReplicatedStorage, CombatServer ->
+	   ServerScriptService, CombatClient -> StarterPlayerScripts. Every hit then goes through it: F
+	   to block, tap F just before a hit to parry (the attacker staggers), guards that wear down and
+	   break (a fully charged Rock breaks one outright), and a stun cuts a charge short.
+	6. Optional: the Loadout folder + LoadoutServer + LoadoutClient, for the ability menu (M) and the
+	   hotbar when the game has more than one kit (Gon's Jajanken, Killua's lightning...). The keys
+	   are then the hotbar's slots.
 
 	Play: hold Z (Rock), X (Paper) or C (Scissors), let go to cast. Tap for a quick cast, hold up to
 	3 seconds for full power (it casts itself at full). Everything is tuned in Jajanken > Config.
@@ -297,6 +335,20 @@ def labelled_kit(jajanken, rig_source, game, previews):
         folder("4. Optional - Workspace (animation rig to publish the animations, a test dummy)", [
             rig, dummy(rig_source, "Test Dummy", (0, -10), 180)]),
     ])
+    combat, loadout = built(os.path.join("Combat", "build", "Combat.rbxmx")), built(
+        os.path.join("Loadout", "build", "Loadout.rbxmx"))
+    if combat is not None:
+        kit.append(folder("5. Optional - the parry system (Combat): folder to ReplicatedStorage, scripts as named", [
+            combat,
+            other_script("Script", "CombatServer", "Combat", "CombatServer.server.luau"),
+            other_script("LocalScript", "CombatClient", "Combat", "CombatClient.client.luau"),
+        ]))
+    if loadout is not None:
+        kit.append(folder("6. Optional - the ability menu (Loadout): folder to ReplicatedStorage, scripts as named", [
+            loadout,
+            other_script("Script", "LoadoutServer", "Loadout", "LoadoutServer.server.luau"),
+            other_script("LocalScript", "LoadoutClient", "Loadout", "LoadoutClient.client.luau"),
+        ]))
     return _reref(kit)
 
 

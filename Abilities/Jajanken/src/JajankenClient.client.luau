@@ -3,7 +3,8 @@
 	JajankenClient (StarterPlayer > StarterPlayerScripts): the keys, the animations, the charge bar
 	and every Jajanken effect this player sees.
 
-	Hold Z / X / C (Config.Keys) to charge Rock / Paper / Scissors and let go to cast. Tapping casts
+	Hold Z / X / C (Config.Keys; with a Loadout in the place, whichever keys the modes are on) to
+	charge Rock / Paper / Scissors and let go to cast. Tapping casts
 	at once with no charge; holding builds it up for Config.MaxCharge seconds, and at full charge it
 	casts by itself. Your own charge shows the moment you press. Everyone else's arrives from the
 	server, which owns the timing, cooldowns and hits (see JajankenServer).
@@ -22,6 +23,17 @@ local Config = require(Jajanken:WaitForChild("Config")) :: any
 local VFX = require(Jajanken:WaitForChild("JajankenVFX"))
 local Remote = Jajanken:WaitForChild("Remote") :: RemoteEvent
 local AnimationFolder = Jajanken:WaitForChild("Animations")
+
+if not game:IsLoaded() then
+	game.Loaded:Wait()
+end
+local function optional(folderName: string, moduleName: string): any
+	local folder = ReplicatedStorage:FindFirstChild(folderName)
+	local module = folder and folder:FindFirstChild(moduleName)
+	return if module and module:IsA("ModuleScript") then require(module) :: any else nil
+end
+local Loadout = optional("Loadout", "Loadout") -- the place's ability menu, if it has one (it owns the keys)
+local Combat = optional("Combat", "Combat")
 
 type Attached = VFX.Attached
 
@@ -161,7 +173,7 @@ do
 	gradient.Parent = fill
 
 	local slots: { [string]: { frame: Frame, shade: Frame } } = {}
-	for i, mode in Config.Modes do
+	for i, mode in if Loadout then {} else Config.Modes do
 		local slot = Instance.new("Frame")
 		slot.Name = mode
 		slot.Position = UDim2.new((i - 1) / 3, 3, 0, 52)
@@ -234,6 +246,9 @@ do
 		end
 	end
 	function ui.deny(mode: string)
+		if Loadout then
+			Loadout.deny(mode)
+		end
 		local slot = slots[mode]
 		if slot then
 			slot.frame.BackgroundColor3 = Color3.fromRGB(120, 30, 20)
@@ -351,6 +366,10 @@ local function beginCharge(mode: string)
 	if not (character and root and humanoid and humanoid.Health > 0) then
 		return
 	end
+	if Combat and not Combat.canAct(character) then
+		ui.deny(mode)
+		return
+	end
 	local aura, hand = startAura(player)
 	charging = { mode = mode, started = now, aura = aura, hand = hand }
 	stop("Hold", 0)
@@ -383,6 +402,9 @@ local function release(mode: string, toldByServer: boolean)
 	busyUntil = now + settings.Recovery
 	ready[mode] = now + Config.Cooldown[mode]
 	ready.All = now + Config.SharedCooldown
+	if Loadout then
+		Loadout.setCooldown(mode, ready[mode], Config.Cooldown[mode])
+	end
 	stopAura(current.aura, current.hand, settings.HitDelay)
 	task.delay(settings.Recovery, function()
 		if not charging then
@@ -419,8 +441,16 @@ end
 
 --------------------------------------------------------------------------- input
 
+local function onInput(mode: string, state: Enum.UserInputState)
+	if state == Enum.UserInputState.Begin then
+		beginCharge(mode)
+	elseif state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
+		release(mode, false)
+	end
+end
+
 local ACTIONS: { [string]: string } = {}
-for _, mode in Config.Modes do
+for _, mode in if Loadout then {} else Config.Modes do
 	local action = "Jajanken" .. mode
 	ACTIONS[action] = mode
 	local inputs = {}
@@ -431,15 +461,19 @@ for _, mode in Config.Modes do
 		table.insert(inputs, Config.GamepadButtons[mode])
 	end
 	ContextActionService:BindAction(action, function(_, state: Enum.UserInputState)
-		if state == Enum.UserInputState.Begin then
-			beginCharge(mode)
-		elseif state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
-			release(mode, false)
-		end
+		onInput(mode, state)
 		return Enum.ContextActionResult.Sink
 	end, Config.MobileButtons, table.unpack(inputs))
 	if Config.MobileButtons then
 		ContextActionService:SetTitle(action, mode)
+	end
+end
+
+if Loadout then
+	for _, mode in Config.Modes do
+		Loadout.bind(mode, function(state: Enum.UserInputState)
+			onInput(mode, state)
+		end)
 	end
 end
 
