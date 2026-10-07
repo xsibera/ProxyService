@@ -7,7 +7,7 @@ An idle, an unsheathe and a 1, 2, 1, 2, finisher M1 string for a one-handed swor
 | `idle` | The sword stance, breathing. Loops. | 2.08s | none |
 | `unsheathe` | Cross-draw from the left hip into the stance. | 1.00s | `Sheathe/Unsheathe` at 0.20s, when the hand takes the grip |
 | `m1-1` | Forehand: cocks the sword behind the right shoulder, then cuts over the top from high right to low left. | 0.83s | `Hit` at 0.43s |
-| `m1-2` | Backhand: cocks the sword over the left shoulder, then cuts back across from high left to low right. | 0.83s | `Hit` at 0.45s |
+| `m1-2` | Backhand: cocks the sword over the left shoulder, then cuts back across from high left to low right and follows through round to the right side, with the off hand down by the side. | 0.83s | `Hit` at 0.45s |
 | `m1-3` | Finisher: a lunging stab. It draws the sword back by the right side with the point toward the target and the off hand aiming, then drives a dead-straight thrust and holds the lunge. | 1.10s | `Hit` at 0.53s |
 | `m1 string (1,2,1,2,3)` | m1-1, m1-2, m1-1, m1-2, m1-3 in one clip, to preview the whole string. | 3.77s | `Hit` on all five impacts |
 
@@ -68,8 +68,8 @@ The sword clips were checked against those numbers. Tip speed is compared in bla
 | | Reference | This set |
 |---|---|---|
 | Forehand tip speed | 61.5 blade lengths/s (kareemandbeast m1-1) | 61.2 (m1-1) |
-| Backhand tip speed | 45.2 blade lengths/s (kareemandbeast m1-2) | 46.2 (m1-2) |
-| Sword arm peak | 1,480–2,530°/s | 1,560–2,080°/s |
+| Backhand tip speed | 45.2 blade lengths/s (kareemandbeast m1-2) | 53.7 (m1-2, with a longer follow-through) |
+| Sword arm peak | 1,480–2,530°/s | 1,530–2,080°/s |
 | Draw tip speed | 88 studs/s (equip) | 97 studs/s (unsheathe) |
 | Hit after tip peak | 1–3 frames | 1–3 frames |
 
@@ -81,7 +81,7 @@ These clips get the same smoothing pass as the fist combo (see `../animkit.py`).
 |---|---|
 | `unsheathe` | 2.18x |
 | `m1-1` | 2.02x |
-| `m1-2` | 2.09x |
+| `m1-2` | 2.05x |
 | `m1-3` | 2.04x |
 
 The idle is built directly from smooth breathing waves, so it isn't smoothed.
