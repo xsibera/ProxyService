@@ -24,8 +24,8 @@ track:GetMarkerReachedSignal("Hit"):Connect(function() ... end)
 - `previews/key_poses.png`: start, coil, load, impact, overshoot and held pose for every hit.
 - `previews/compare_realtime.gif`: the reference fist m1-1 next to all five hits, in real time.
 - `previews/m1_string.gif`: the `m1 string (1,2,1,2,3)` clip in real time.
-- `generate_combo.py`: the source that bakes all of the above.
-- `style_profiles.json`: curves measured from the reference.
+- `generate_combo.py`: the source that bakes all of the above. The shared machinery (curves, smoothing, R6 conversion, export) is in `../animkit.py`.
+- `../style_profiles.json`: curves measured from the reference, shared with the sword set.
 
 ## Using it
 
@@ -78,7 +78,7 @@ On their own, the keyed curves ease in and out at every key, which made the arms
 | `m1-5` | 1,352k°/s³ | 613k°/s³ | 2.20x |
 | string | 2,871k°/s³ | 1,294k°/s³ | 2.22x |
 
-For comparison, the reference fist M1 is 1,552k°/s³. Change the target with `SMOOTHNESS` in `generate_combo.py`.
+For comparison, the reference fist M1 is 1,552k°/s³. Change the target with `SMOOTHNESS` in `../animkit.py`.
 
 ## Changing it
 

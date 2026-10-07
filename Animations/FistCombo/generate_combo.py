@@ -19,188 +19,26 @@ Outputs (next to this file):
 """
 
 import json
-import math
 import os
 import sys
 import xml.etree.ElementTree as ET
 
-import numpy as np
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from animkit import (  # noqa: E402
+    UPPER,
+    Clip,
+    build_string,
+    clip_transforms,
+    mirror,
+    prop,
+    ref,
+    reference_rig,
+    rest_pose,
+    sequence_xml,
+)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-FPS = 60
-JOINTS = ["Root", "Neck", "RArm", "LArm"]
-PART = {"Root": "Torso", "Neck": "Head", "RArm": "Right Arm", "LArm": "Left Arm"}
-
-# --------------------------------------------------------------------------- curve profiles
-P = json.load(open(os.path.join(HERE, "style_profiles.json")))
-
-
-def _norm(arr):
-    a = np.array(arr, float)
-    return (a - a[0]) / (a[-1] - a[0])
-
-
-WHIP = np.array(P["whip"])
-PROFILES = {
-    "coil": np.array(P["coil"]),
-    "whip": WHIP,
-    "settle": np.array(P["settle"]),
-    "drift": np.array(P["drift"]),
-    "slowin": _norm(WHIP[0:8]),  # the loaded build-up at the start of the whip
-    "snap": _norm(WHIP[7:13]),  # the explosive middle of the whip
-    "stop": _norm(WHIP[11:16]),  # the hard stop at the end of the whip
-    "armstrike": np.array(P["arm_strike_z"]),  # the punching arm accelerating through impact
-    "ease": None,
-    "linear": None,
-    "accel": None,
-    "decel": None,
-}
-
-
-def curve(name, u):
-    u = min(1.0, max(0.0, u))
-    if name == "linear":
-        return u
-    if name == "ease":
-        return u * u * (3 - 2 * u)
-    if name == "accel":
-        return u * u
-    if name == "decel":
-        return 1 - (1 - u) * (1 - u)
-    prof = PROFILES[name]
-    xs = np.linspace(0, 1, len(prof))
-    return float(np.interp(u, xs, prof))
-
-
-# --------------------------------------------------------------------------- clip authoring
-class Clip:
-    def __init__(self, name, frames, hit, arm):
-        self.name = name
-        self.frames = frames  # last frame index
-        self.hit = hit  # frame of the "Hit" marker
-        self.arm = arm  # the striking arm ("RArm" / "LArm")
-        self.keys = {j: [] for j in JOINTS}
-        self.neck_auto = True
-        self.smoothing = None  # (strike sigma, jerk reduction) once baked
-
-    def key(self, joint, frame, vals, curve_in="ease"):
-        v = list(vals) + [0.0] * (6 - len(vals))
-        self.keys[joint].append((frame, np.array(v, float), curve_in))
-        self.keys[joint].sort(key=lambda k: k[0])
-        return self
-
-    def bake(self):
-        out = {}
-        for j in JOINTS:
-            ks = self.keys[j]
-            rows = []
-            for f in range(self.frames + 1):
-                if not ks:
-                    rows.append(np.zeros(6))
-                    continue
-                if f <= ks[0][0]:
-                    rows.append(ks[0][1].copy())
-                    continue
-                if f >= ks[-1][0]:
-                    rows.append(ks[-1][1].copy())
-                    continue
-                for a, b in zip(ks, ks[1:]):
-                    if a[0] <= f <= b[0]:
-                        p = curve(b[2], (f - a[0]) / (b[0] - a[0]))
-                        rows.append(a[1] + (b[1] - a[1]) * p)
-                        break
-            out[j] = np.array(rows)
-        if self.neck_auto:
-            # head keeps facing the target: counter the torso yaw (capped), following it with a
-            # slight lag so it trails the torso during the whip like the reference does
-            yaw = out["Root"][:, 1]
-            wrapped = (yaw + 180) % 360 - 180
-            target = np.clip(-0.95 * wrapped, -71, 71)
-            follow = np.zeros_like(target)
-            follow[0] = target[0]
-            alpha = 1 - math.exp(-(1 / FPS) / 0.022)
-            for i in range(1, len(target)):
-                follow[i] = follow[i - 1] + (target[i] - follow[i - 1]) * alpha
-            out["Neck"][:, 1] += follow
-        return smooth(self, out)
-
-
-# --------------------------------------------------------------------------- smoothing
-# Every keyed segment eases in and out on its own, so on their own the arms hitch at each key.
-# This pass runs a Gaussian over the baked curves: wide through the coil, settle and drift, and
-# narrow around each joint's whip so the strike keeps its snap. The torso and the striking arm get
-# the lightest smoothing that cuts the clip's angular jerk by SMOOTHNESS; the off hand and the head
-# don't need the snap, so they are always smoothed harder.
-SMOOTHNESS = 2.0  # angular jerk of the raw keyed curves / angular jerk of the output
-SMOOTH_FAR = 2.0  # Gaussian sigma (frames) away from the whip
-SMOOTH_NEAR = {"off": 1.8, "neck": 1.4}  # sigma at the whip for the off hand and the head
-SMOOTH_WIDTH = 3.0  # frames over which sigma narrows into the whip
-
-
-def _rotvec(r):
-    c = max(-1.0, min(1.0, (np.trace(r) - 1) / 2))
-    th = math.acos(c)
-    if th < 1e-9:
-        return np.zeros(3)
-    v = np.array([r[2, 1] - r[1, 2], r[0, 2] - r[2, 0], r[1, 0] - r[0, 1]]) / (2 * math.sin(th))
-    return v * th
-
-
-def _angular_velocity(ch):
-    """Per-frame angular velocity vectors (rad/s, parent space) of a channel track."""
-    rs = [euler_yxz(*row[:3]) for row in ch]
-    return np.array([rs[i] @ _rotvec(rs[i - 1].T @ rs[i]) * FPS for i in range(1, len(rs))])
-
-
-def angular_speed(ch):
-    w = np.linalg.norm(_angular_velocity(ch), axis=1) * 180 / math.pi
-    return np.concatenate([w[:1], w])
-
-
-def angular_jerk(tracks):
-    """RMS angular jerk (deg/s^3) over all joints of a clip."""
-    total = 0.0
-    for ch in tracks.values():
-        jk = np.diff(_angular_velocity(ch), n=2, axis=0) * FPS * FPS
-        total += (np.linalg.norm(jk, axis=1) ** 2).mean()
-    return math.sqrt(total) * 180 / math.pi
-
-
-def _gauss_varying(ch, sigma):
-    n = len(ch)
-    out = np.empty_like(ch)
-    for i in range(n):
-        r = max(1, int(math.ceil(3 * sigma[i])))
-        idx = np.clip(np.arange(i - r, i + r + 1), 0, n - 1)
-        w = np.exp(-0.5 * (np.arange(-r, r + 1) / sigma[i]) ** 2)
-        out[i] = (w / w.sum()) @ ch[idx]
-    return out
-
-
-def smooth(clip, raw):
-    lo, hi = max(0, clip.hit - 8), clip.hit + 3
-    off = "LArm" if clip.arm == "RArm" else "RArm"
-    fixed = {"Neck": SMOOTH_NEAR["neck"], off: SMOOTH_NEAR["off"]}
-    f = np.arange(len(raw["Root"]))
-    centre = {j: lo + int(np.argmax(angular_speed(raw[j])[lo:hi])) for j in JOINTS}
-    base = angular_jerk(raw)
-    for strike in np.arange(0.3, 1.501, 0.05):
-        out = {}
-        for j in JOINTS:
-            near = fixed.get(j, strike)
-            sig = SMOOTH_FAR - (SMOOTH_FAR - near) * np.exp(-0.5 * ((f - centre[j]) / SMOOTH_WIDTH) ** 2)
-            out[j] = _gauss_varying(raw[j], sig)
-        factor = base / angular_jerk(out)
-        if factor >= SMOOTHNESS:
-            break
-    clip.smoothing = (round(float(strike), 2), factor)
-    return out
-
-
-def mirror(v):
-    """Mirror a channel vector left<->right (pitch, yaw, roll, x, y, z)."""
-    p, y, r, x, yy, z = (list(v) + [0] * 6)[:6]
-    return [p, -y, -r, -x, yy, z]
+JOINTS = list(UPPER)
 
 
 # --------------------------------------------------------------------------- the combo
@@ -420,104 +258,6 @@ def m1_5():
 
 CLIPS = [m1_1, m1_2, m1_3, m1_4, m1_5]
 
-# --------------------------------------------------------------------------- R6 conversion
-C0_ROT = {  # standard R6 Motor6D C0 rotations (rows)
-    "Root": [[-1, 0, 0], [0, 0, 1], [0, 1, 0]],
-    "Neck": [[-1, 0, 0], [0, 0, 1], [0, 1, 0]],
-    "RArm": [[0, 0, 1], [0, 1, 0], [-1, 0, 0]],
-    "LArm": [[0, 0, -1], [0, 1, 0], [1, 0, 0]],
-}
-
-
-def euler_yxz(p, y, r):
-    p, y, r = map(math.radians, (p, y, r))
-    cx, sx, cy, sy, cz, sz = math.cos(p), math.sin(p), math.cos(y), math.sin(y), math.cos(r), math.sin(r)
-    ry = np.array([[cy, 0, sy], [0, 1, 0], [-sy, 0, cy]])
-    rx = np.array([[1, 0, 0], [0, cx, -sx], [0, sx, cx]])
-    rz = np.array([[cz, -sz, 0], [sz, cz, 0], [0, 0, 1]])
-    return ry @ rx @ rz
-
-
-def to_transform(joint, ch):
-    """Parent-space channels -> Motor6D Transform (what a Pose.CFrame stores)."""
-    rc = np.array(C0_ROT[joint], float)
-    pr = euler_yxz(ch[0], ch[1], ch[2])
-    rot = rc.T @ pr @ rc
-    pos = rc.T @ np.array(ch[3:6])
-    return pos, rot
-
-
-# --------------------------------------------------------------------------- XML export
-_ref = [0]
-
-
-def ref():
-    _ref[0] += 1
-    return "RBXCOMBO%06d" % _ref[0]
-
-
-def prop(parent, tag, name, text=None):
-    el = ET.SubElement(parent, tag, {"name": name})
-    if text is not None:
-        el.text = text
-    return el
-
-
-def cframe(parent, name, pos, rot):
-    el = ET.SubElement(parent, "CoordinateFrame", {"name": name})
-    for k, v in zip(["X", "Y", "Z"], pos):
-        ET.SubElement(el, k).text = repr(float(v))
-    for i in range(3):
-        for j in range(3):
-            ET.SubElement(el, "R%d%d" % (i, j)).text = repr(float(rot[i][j]))
-
-
-def pose(parent, name, pos, rot, weight=1.0, direction=1):
-    item = ET.SubElement(parent, "Item", {"class": "Pose", "referent": ref()})
-    props = ET.SubElement(item, "Properties")
-    prop(props, "string", "Name", name)
-    cframe(props, "CFrame", pos, rot)
-    prop(props, "token", "EasingDirection", str(direction))
-    prop(props, "token", "EasingStyle", "0")
-    prop(props, "float", "Weight", repr(float(weight)))
-    return item
-
-
-IDENTITY = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
-
-
-def clip_transforms(clip, baked):
-    """Per frame: {joint: (pos, rot)} Motor6D transforms."""
-    return [{j: to_transform(j, baked[j][f]) for j in JOINTS} for f in range(clip.frames + 1)]
-
-
-def sequence_xml(name, frames, hit_frames, loop=False):
-    seq = ET.Element("Item", {"class": "KeyframeSequence", "referent": ref()})
-    props = ET.SubElement(seq, "Properties")
-    prop(props, "string", "Name", name)
-    prop(props, "bool", "Loop", "true" if loop else "false")
-    prop(props, "token", "Priority", "2")
-    for f, transforms in enumerate(frames):
-        kf = ET.SubElement(seq, "Item", {"class": "Keyframe", "referent": ref()})
-        kp = ET.SubElement(kf, "Properties")
-        prop(kp, "string", "Name", "Keyframe")
-        prop(kp, "float", "Time", repr(f / FPS))
-        hrp = pose(kf, "HumanoidRootPart", (0, 0, 0), IDENTITY, 1.0, direction=0)
-        pos, rot = transforms["Root"]
-        torso = pose(hrp, "Torso", pos, rot)
-        for joint in ["Neck", "RArm", "LArm"]:
-            pos, rot = transforms[joint]
-            pose(torso, PART[joint], pos, rot)
-        pose(torso, "Right Leg", (0, 0, 0), IDENTITY, 0.0)
-        pose(torso, "Left Leg", (0, 0, 0), IDENTITY, 0.0)
-        if f in hit_frames:
-            marker = ET.SubElement(kf, "Item", {"class": "KeyframeMarker", "referent": ref()})
-            mp = ET.SubElement(marker, "Properties")
-            prop(mp, "string", "Name", "Hit")
-            prop(mp, "string", "Value", "Hit")
-    return seq
-
-
 # --------------------------------------------------------------------------- full-string preview
 # Every hit is cancelled into the next one this long after it starts (about 0.15s after its
 # impact), crossfading over STRING_FADE (use AnimationTrack:Play(0.15) in game for the same blend).
@@ -526,92 +266,6 @@ STRING_ORDER = ["m1-1", "m1-2", "m1-1", "m1-2", "m1-3"]
 STRING_CANCEL = {"m1-1": 0.48, "m1-2": 0.55, "m1-3": 0.55, "m1-4": 0.58}
 STRING_FADE = 0.15
 STRING_END_FADE = 0.3
-
-
-def _quat(m):
-    m = np.asarray(m, float)
-    tr = m[0, 0] + m[1, 1] + m[2, 2]
-    if tr > 0:
-        sq = math.sqrt(tr + 1.0) * 2
-        q = [0.25 * sq, (m[2, 1] - m[1, 2]) / sq, (m[0, 2] - m[2, 0]) / sq, (m[1, 0] - m[0, 1]) / sq]
-    elif m[0, 0] > m[1, 1] and m[0, 0] > m[2, 2]:
-        sq = math.sqrt(1.0 + m[0, 0] - m[1, 1] - m[2, 2]) * 2
-        q = [(m[2, 1] - m[1, 2]) / sq, 0.25 * sq, (m[0, 1] + m[1, 0]) / sq, (m[0, 2] + m[2, 0]) / sq]
-    elif m[1, 1] > m[2, 2]:
-        sq = math.sqrt(1.0 + m[1, 1] - m[0, 0] - m[2, 2]) * 2
-        q = [(m[0, 2] - m[2, 0]) / sq, (m[0, 1] + m[1, 0]) / sq, 0.25 * sq, (m[1, 2] + m[2, 1]) / sq]
-    else:
-        sq = math.sqrt(1.0 + m[2, 2] - m[0, 0] - m[1, 1]) * 2
-        q = [(m[1, 0] - m[0, 1]) / sq, (m[0, 2] + m[2, 0]) / sq, (m[1, 2] + m[2, 1]) / sq, 0.25 * sq]
-    q = np.array(q)
-    return q / np.linalg.norm(q)
-
-
-def _mat(q):
-    w, x, y, z = q
-    return np.array([
-        [1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
-        [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
-        [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)],
-    ])
-
-
-def _blend(a, b, w):
-    """Blend two {joint: (pos, rot)} poses: slerp rotations, lerp positions."""
-    out = {}
-    for j in JOINTS:
-        (pa, ra), (pb, rb) = a[j], b[j]
-        qa, qb = _quat(ra), _quat(rb)
-        d = float(np.dot(qa, qb))
-        if d < 0:
-            qb, d = -qb, -d
-        if d > 0.9995:
-            q = qa + (qb - qa) * w
-        else:
-            th = math.acos(d)
-            q = (math.sin((1 - w) * th) * qa + math.sin(w * th) * qb) / math.sin(th)
-        q = q / np.linalg.norm(q)
-        out[j] = (np.array(pa) + (np.array(pb) - np.array(pa)) * w, _mat(q))
-    return out
-
-
-REST = {j: ((0.0, 0.0, 0.0), np.eye(3)) for j in JOINTS}
-
-
-def _smoothstep(u):
-    u = min(1.0, max(0.0, u))
-    return u * u * (3 - 2 * u)
-
-
-def build_string(clips):
-    """clips: list of (clip, frames) in combo order -> (frames, hit frame indices)."""
-    starts, t = [], 0.0
-    for clip, _ in clips:
-        starts.append(t)
-        t += STRING_CANCEL.get(clip.name, clip.frames / FPS)
-    last_clip, last_frames = clips[-1]
-    end = starts[-1] + last_clip.frames / FPS + STRING_END_FADE
-    total = int(round(end * FPS))
-
-    def sample(frames, local):
-        return frames[min(len(frames) - 1, max(0, int(round(local * FPS))))]
-
-    out = []
-    for f in range(total + 1):
-        t = f / FPS
-        pose_now = REST
-        for i, (clip, frames) in enumerate(clips):
-            if t < starts[i]:
-                break
-            local = t - starts[i]
-            w = _smoothstep(local / STRING_FADE) if i > 0 else 1.0
-            pose_now = _blend(pose_now, sample(frames, local), w)
-        tail = t - (starts[-1] + last_clip.frames / FPS)
-        if tail > 0:
-            pose_now = _blend(pose_now, REST, _smoothstep(tail / STRING_END_FADE))
-        out.append(pose_now)
-    hits = {int(round((starts[i] + clip.hit / FPS) * FPS)) for i, (clip, _) in enumerate(clips)}
-    return out, hits
 
 
 def build(rig_source=None, out_dir=HERE):
@@ -625,35 +279,21 @@ def build(rig_source=None, out_dir=HERE):
         frames = clip_transforms(clip, baked)
         by_name[clip.name] = (clip, frames)
         print("%s: strike sigma %.2f, jerk cut x%.2f" % ((clip.name,) + clip.smoothing))
-        sequences.append(sequence_xml(clip.name, frames, {clip.hit}))
+        sequences.append(sequence_xml(clip.name, frames, clip.markers))
     # always ship the whole string as one animation so the combo can be previewed in one go
-    string_frames, string_hits = build_string([by_name[n] for n in STRING_ORDER])
+    rest = rest_pose(JOINTS)
+    string_frames, string_hits = build_string(
+        [by_name[n] for n in STRING_ORDER], STRING_CANCEL, STRING_FADE, STRING_END_FADE, rest, rest
+    )
     sequences.append(sequence_xml(STRING_NAME, string_frames, string_hits))
     json.dump(baked_all, open(os.path.join(out_dir, "combo_data.json"), "w"))
 
     root = ET.Element("roblox", {"version": "4"})
     if rig_source:
         # reuse the reference "normal player" rig (same parts, joints and look) with new AnimSaves
-        src = ET.parse(rig_source).getroot()
-        rig = None
-        for item in src.findall("Item"):
-            name = item.find("Properties/string[@name='Name']")
-            if name is not None and name.text == "normal player":
-                rig = item
-        assert rig is not None, "normal player rig not found"
-        for child in list(rig.findall("Item")):
-            cname = child.find("Properties/string[@name='Name']")
-            if child.get("class") == "ObjectValue" and cname is not None and cname.text == "AnimSaves":
-                for old in list(child.findall("Item")):
-                    child.remove(old)
-                for s in sequences:
-                    child.append(s)
-        rig.find("Properties/string[@name='Name']").text = "Fist Combo Rig"
-        # drop Studio-regenerated caches that point into the source file's SharedStrings table
-        for props in rig.iter("Properties"):
-            for el in list(props):
-                if el.tag == "SharedString":
-                    props.remove(el)
+        rig, saves = reference_rig(rig_source, "Fist Combo Rig")
+        for s in sequences:
+            saves.append(s)
         root.append(rig)
     else:
         saves = ET.SubElement(root, "Item", {"class": "Folder", "referent": ref()})
