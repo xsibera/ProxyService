@@ -30,7 +30,7 @@ Config.MobileButtons = true -- on-screen buttons on touch devices
 
 -- charging
 Config.MaxCharge = 3 -- seconds to full power; it casts itself when it gets there
-Config.ChargeWalkSpeed = 4 -- walk speed while charging and casting (0 = rooted in the stance)
+Config.ChargeWalkSpeed = 8 -- walk speed while charging and casting (the animations leave the legs to the walk)
 Config.CanJumpWhileCharging = false
 Config.Chant = true -- "Saisho wa guu! Jan... Ken..." over the charge bar
 

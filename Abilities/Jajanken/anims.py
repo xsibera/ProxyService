@@ -40,6 +40,12 @@ from animkit import FPS, UPPER, Clip, from_transform, to_transform, world_leg  #
 from generate_sword import MOTORS, cf, inv, joint_cf  # noqa: E402
 
 FULL = UPPER + ("RLeg", "LLeg")
+# The legs are left to the walk: every clip keys them at Weight 0, so the player can walk while
+# charging. With the legs free the body can't drop as far without the feet going through the floor,
+# so the root's drop and lunge are scaled down to what the M1s use (a low hunch, not a deep squat).
+LEGS_FREE = True
+DROP_SCALE = 0.28  # root y (the squat drop) x this
+LUNGE_SCALE = 0.6  # root z (forward / back shift) x this
 GROUND = -3.0  # the floor in root space (HumanoidRootPart centre 3 studs up)
 MAX_TUCK = 1.25  # studs a leg may slide up into the hip (the reference slides its legs up to ~1.2)
 
@@ -183,6 +189,8 @@ def leg_to_once(joint, root, target):
 
 def feet_at(c, f, root, left, right, k="ease"):
     """Key both legs at frame f with the feet on world points (x, z on the floor, or (x, y, z))."""
+    if "LLeg" not in c.joints:
+        return
     for joint, spot in (("LLeg", left), ("RLeg", right)):
         p = [spot[0], GROUND, spot[1]] if len(spot) == 2 else list(spot)
         c.key(joint, f, leg_to(joint, root, p), k)
@@ -190,6 +198,8 @@ def feet_at(c, f, root, left, right, k="ease"):
 
 def legs(c, f, root, front, back, k="ease"):
     """Key both legs at frame f. front / back = (pitch, roll, yaw) for the left (lead) / right leg."""
+    if "LLeg" not in c.joints:
+        return
     c.key("LLeg", f, leg("LLeg", root, *front), k)
     c.key("RLeg", f, leg("RLeg", root, *back), k)
 
@@ -225,7 +235,7 @@ def charge():
     """Standing -> the squat (0.45s): a counter-move up and back, then he drops and turns away, the
     left palm comes up and the right fist smacks down into it at f14; the body sinks past the squat
     and settles into it."""
-    c = Clip("Jajanken Charge", 27, hit=None, arm="RArm", joints=FULL)
+    c = Clip("Jajanken Charge", 27, hit=None, arm="RArm", joints=UPPER if LEGS_FREE else FULL)
     c.peak = 13
     R = lambda f, v, k="ease": c.key("Root", f, v, k)  # noqa: E731
     R(0, STANDING)
@@ -250,8 +260,9 @@ def charge():
     c.key("LArm", 12, arm_t("LArm", PALM, twist=70), "coil")
     c.key("LArm", 15, squat_larm(-0.1), "stop")
     c.key("LArm", 27, squat_larm(), "settle")
-    c.key("LLeg", 0, [0, 0, 0, 0, 0, 0])
-    c.key("RLeg", 0, [0, 0, 0, 0, 0, 0])
+    if "LLeg" in c.joints:
+        c.key("LLeg", 0, [0, 0, 0, 0, 0, 0])
+        c.key("RLeg", 0, [0, 0, 0, 0, 0, 0])
     feet_at(c, 4, [6, 8, -2, 0, 0.05, 0.02], (-0.55, -0.05), (0.55, 0.05), "decel")
     feet_at(c, 9, [-10, -40, 4, 0.05, -0.7, 0.12], (-0.85, -2.7, -0.8), (0.8, -2.75, 0.95), "accel")  # a hop out into it
     feet_at(c, 15, [-21, -70, 8, 0.1, -1.32, 0.04], SQUAT_LEFT, SQUAT_RIGHT, "coil")
@@ -263,7 +274,7 @@ def hold():
     """Looped while charging (1.2s): breathing in the squat, the shoulders rising and the body
     hunching down over the hands on each breath, the fist grinding into the palm and trembling with
     the aura building in it. Keyed like the reference idles: a handful of eased poses, not waves."""
-    c = Clip("Jajanken Hold", 72, hit=None, arm="RArm", joints=FULL)
+    c = Clip("Jajanken Hold", 72, hit=None, arm="RArm", joints=UPPER if LEGS_FREE else FULL)
     c.loop = True
     c.smooth = False
     breaths = {  # frame: (root offset [pitch, yaw, roll, x, y, z], fist push, neck offset)
@@ -303,7 +314,7 @@ def rock():
     away and sinks ("Jan... Ken..."), holds loaded, then the legs drive him up and forward out of the
     squat as the torso whips 165 deg round and the right fist rips straight out at chest height;
     the left hand is yanked back to the hip. Hit at 0.4s; the punch stays out and drifts."""
-    c = Clip("Jajanken Rock", 57, hit=24, arm="RArm", joints=FULL)
+    c = Clip("Jajanken Rock", 57, hit=24, arm="RArm", joints=UPPER if LEGS_FREE else FULL)
     key_squat(c, 0)
     counter_move(c, 4)
     coil = [-22, -104, 10, 0.12, -1.34, 0.22]
@@ -356,7 +367,7 @@ def paper():
     palm-forward as he winds away, then he pushes up out of the squat and drives the open palm
     straight out at chest height; the ball leaves the palm on Hit (0.367s) and its kick knocks the
     arm and body back a step before he settles behind the extended palm."""
-    c = Clip("Jajanken Paper", 54, hit=22, arm="RArm", joints=FULL)
+    c = Clip("Jajanken Paper", 54, hit=22, arm="RArm", joints=UPPER if LEGS_FREE else FULL)
     key_squat(c, 0)
     counter_move(c, 4)
     coil = [-19, -98, 9, 0.12, -1.3, 0.2]
@@ -408,7 +419,7 @@ def scissors():
     up and out wide to the right as he winds away and rises out of the squat, then the torso whips
     195 deg round and the blade is swept flat across the front at chest height, right to left, and
     carried on round to the left; Hit as it crosses the front (0.333s)."""
-    c = Clip("Jajanken Scissors", 54, hit=20, arm="RArm", joints=FULL)
+    c = Clip("Jajanken Scissors", 54, hit=20, arm="RArm", joints=UPPER if LEGS_FREE else FULL)
     c.slerp = {"RArm"}
     c.peak = 20
     key_squat(c, 0)
@@ -493,6 +504,10 @@ def bake_all():
     out = []
     for make in CLIPS:
         c = make()
+        if LEGS_FREE:
+            for _, v, _ in c.keys["Root"]:
+                v[4] *= DROP_SCALE
+                v[5] *= LUNGE_SCALE
         baked = c.bake()
         if "LLeg" in baked:
             plant(baked)

@@ -52,7 +52,7 @@ Everything is a `{ tapped, fully charged }` pair, so a value in between is used 
 
 Global settings:
 - `MaxCharge` (3s).
-- `ChargeWalkSpeed`: 4 while charging and casting; set it to 0 to root Gon in the stance.
+- `ChargeWalkSpeed`: 8 while charging and casting (the animations leave the legs to the walk); set it to 0 to root Gon in place.
 - `CanJumpWhileCharging`.
 - `SharedCooldown`: 0.8s between any two casts.
 - `HitPlayers` and `TeamCheck`.
@@ -87,7 +87,7 @@ Knockback is a short `LinearVelocity` on the victim's HumanoidRootPart. That pus
 
 These follow what Gon does in the anime, in the style of your reference animations: your fist M1s and your `abilities` rig (nen burst, ice downslam, leg axe).
 
-1. **"Saisho wa guu!":** he drops into a deep squat, turns his body away from the target, and presses his right fist into his open left palm while the aura gathers in it. That's the charge pose, held while charging.
+1. **"Saisho wa guu!":** he hunches down, turns his body away from the target, and presses his right fist into his open left palm while the aura gathers in it. That's the charge pose, held while charging.
 2. **"Jan… Ken…":** the fist leaves the palm and draws back as he winds further away.
 3. **The release:**
    - **"Guu!":** a lunging straight right.
@@ -111,8 +111,8 @@ Motion previews of the full casts are in `previews/rock_full_cast.gif`, `paper_f
 - **The beats:** counter-move → coil (the torso winds 40–50° further away and the arm chambers out of its socket) → loaded slow-in → a 4-frame whip (the torso swings 140–200° and the strike shoots out) → overshoot → settle → a slow drift on the held pose.
 - **Curves:** the coil, whip, settle and drift curves are the ones measured from your reference animations.
 - **Head:** it counter-turns so the eyes stay on the target, and tucks at the hit.
-- **Scale:** the motion is as big as your ability animations. The body drops up to 1.35 studs, arms slide up to 1 stud out of the socket for reach, and legs slide up to 1.25 studs into the hip to fake a bent knee, as your downslam does.
-- **Feet:** they're planted. Every leg is aimed from its hip at a spot on the floor, with the knee turned the way the hips face. A pass after baking keeps each foot on the floor every frame, so nothing slides through the ground or floats.
+- **Scale:** the torso turns as far as your ability animations do, and arms slide up to 1 stud out of the socket for reach.
+- **Legs:** every clip keys them at **Weight 0**, so the walk drives them and you can walk while charging (`ChargeWalkSpeed`, 8 by default). That's also why the body only drops about 0.35 studs, as your M1s do: any lower and the walking legs would sink into the floor. (`anims.py` can still key planted legs and a deep squat: set `LEGS_FREE = False`.)
 - **Smoothing:** angular jerk is cut 2.1–2.3×, like the M1s.
 
 Every release starts on the exact squat pose, so it cuts in from the hold at any frame. The `HitDelay` values in Config are the Hit markers (Rock 24/60s, Paper 22/60s, Scissors 20/60s), and the build fails if they ever drift apart.

@@ -310,11 +310,11 @@ local function castEffects(caster: Player, mode: string, charge: number, hitAt: 
 		end
 		local at = root.CFrame
 		if mode == "Rock" then
-			local fist = at * CFrame.new(0.85, -0.5, -4.3)
+			local fist = at * CFrame.new(0.85, 0.15, -3.8)
 			VFX.Play("RockBlast", fist, options)
 			VFX.Sound("RockHit", fist.Position, 0.7 + 0.6 * charge)
 		elseif mode == "Scissors" then
-			VFX.Play("ScissorsSlash", at * CFrame.new(0.2, -0.3, -1.9), options)
+			VFX.Play("ScissorsSlash", at * CFrame.new(0.2, 0.35, -1.9), options)
 			VFX.Sound("ScissorsCast", root, 0.7 + 0.6 * charge)
 		end
 	end)

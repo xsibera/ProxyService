@@ -198,7 +198,7 @@ local function throwPaper(player: Player, state: State, charge: number, aim: any
 	local range = Config.scaled(settings.Range, charge)
 	local radius = Config.scaled(settings.Radius, charge)
 	local direction = aimOf(state.root, aim)
-	local from = (state.root.CFrame * CFrame.new(0.9, -0.75, -3.4)).Position -- the palm at the Hit marker
+	local from = (state.root.CFrame * CFrame.new(1.0, -0.15, -3.1)).Position -- the palm at the Hit marker
 	projectileId += 1
 	local id = projectileId
 	Remote:FireAllClients("Launch", player, id, from, direction, speed, range, workspace:GetServerTimeNow(), charge)

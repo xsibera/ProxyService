@@ -107,14 +107,14 @@ def baked_sequences():
         clips[c.name] = (c, clip_transforms(c, baked))
     game = {}
     for name, (c, frames) in clips.items():
-        game[name] = sequence_xml(name, frames, c.markers, loop=c.loop, zero_weight=())
+        game[name] = sequence_xml(name, frames, c.markers, loop=c.loop)  # legs at Weight 0: the walk drives them
     previews = []
     stance = clips["Jajanken Hold"][1][0]
     for mode in ("Rock", "Paper", "Scissors"):
         chain = [clips["Jajanken Charge"], clips["Jajanken Hold"], clips["Jajanken " + mode]]
         end = clips["Jajanken " + mode][1][-1]
         frames, hits = build_string(chain, {"Jajanken Charge": 0.4, "Jajanken Hold": 1.0}, 0.1, 0.3, stance, end)
-        previews.append(sequence_xml("Jajanken %s (full cast preview)" % mode, frames, hits, zero_weight=()))
+        previews.append(sequence_xml("Jajanken %s (full cast preview)" % mode, frames, hits))
     hits = {name: c.hit / FPS for name, (c, _) in clips.items() if c.hit is not None}
     return game, previews, hits
 
