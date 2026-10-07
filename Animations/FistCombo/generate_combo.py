@@ -214,41 +214,44 @@ def m1_2():
 
 
 def m1_3():
-    """Lead (left) hook: arm swung wide behind, rips across in a flat arc, body tilts into it."""
+    """Lead (left) hook: arm cocked back at shoulder height, rips across in a flat arc and finishes
+    across the face (fist in front of the opposite shoulder), body tilting into it."""
     c = Clip("m1-3", 50, hit=24)
     R = lambda f, v, k="ease": c.key("Root", f, v, k)
     R(0, [-4, -10, 0.5, 0, -0.24, 0])
-    R(13, [6, 72, 12, 0, -0.3, 0.3], "coil")
-    R(28, [-14, -86, -18, 0, -0.32, -0.22], "whip")
-    R(44, [-10, -70, -10, 0, -0.27, -0.06], "settle")
-    R(50, [-11, -73, -11, 0, -0.27, -0.04], "drift")
+    R(13, [6, 64, 12, 0, -0.3, 0.3], "coil")
+    R(28, [-12, -62, -14, 0, -0.32, -0.22], "whip")
+    R(44, [-9, -50, -8, 0, -0.27, -0.06], "settle")
+    R(50, [-10, -53, -9, 0, -0.27, -0.04], "drift")
     N = lambda f, v, k="ease": c.key("Neck", f, v, k)
     N(0, [0, 0, 1])
     N(13, [-8, 0, -8], "coil")
     N(20, [-6, 0, -2], "slowin")
-    N(24, [-14, 0, 12], "snap")
-    N(28, [-18, 0, 16], "stop")
-    N(44, [-12, 0, 10], "settle")
-    N(50, [-14, 0, 11], "drift")
+    N(24, [-14, 0, 10], "snap")
+    N(28, [-17, 0, 13], "stop")
+    N(44, [-12, 0, 8], "settle")
+    N(50, [-13, 0, 9], "drift")
+    # hook arm: never sticks out sideways at the end, it wraps across the front of the face
     L = lambda f, v, k="ease": c.key("LArm", f, v, k)
     L(0, [0, 0, 0, 0, 0, 0])
     L(5, [26, -26, -24, 0.12, 0.03, -0.22])
-    L(13, [30, 56, -98, -0.42, 0.16, 0.66], "coil")
-    L(19, [34, 64, -110, -0.36, 0.2, 0.52], "slowin")
-    L(24, [22, -30, -96, 0.22, 0.06, -0.62], "armstrike")
-    L(27, [16, -66, -92, 0.42, 0.02, -0.58], "stop")
-    L(29, [20, -58, -95, 0.36, 0.0, -0.52], "ease")
-    L(44, [14, -50, -92, 0.28, -0.04, -0.4], "settle")
-    L(50, [15, -52, -93, 0.3, -0.04, -0.42], "drift")
+    L(13, [34, 18, -86, -0.16, 0.12, 0.5], "coil")
+    L(19, [36, 25, -94, -0.18, 0.16, 0.46], "slowin")
+    L(24, [18, -90, -92, 0.3, 0.08, -0.36], "armstrike")
+    L(27, [14, -118, -90, 0.5, 0.1, -0.26], "stop")
+    L(30, [16, -110, -91, 0.46, 0.1, -0.28], "ease")
+    L(44, [14, -106, -90, 0.42, 0.08, -0.26], "settle")
+    L(50, [15, -108, -90, 0.43, 0.08, -0.27], "drift")
+    # rear hand stays up as a guard by the chin
     Rr = lambda f, v, k="ease": c.key("RArm", f, v, k)
     Rr(0, [0, 0, 0, 0, 0, 0])
     Rr(4, [10, 16, 8, -0.08, 0.02, -0.2])
-    Rr(13, [72, 44, 30, -0.34, 0.32, -0.36], "coil")
-    Rr(20, [80, 60, 44, -0.4, 0.38, -0.3], "slowin")
-    Rr(24, [64, 30, 42, -0.5, 0.06, 0.22], "snap")
-    Rr(27, [58, 22, 46, -0.52, -0.02, 0.32], "stop")
-    Rr(44, [52, 20, 44, -0.48, -0.04, 0.3], "settle")
-    Rr(50, [53, 18, 45, -0.49, -0.05, 0.31], "drift")
+    Rr(13, [76, 40, 26, -0.36, 0.3, -0.34], "coil")
+    Rr(20, [82, 52, 34, -0.4, 0.34, -0.3], "slowin")
+    Rr(24, [70, 34, 30, -0.42, 0.18, -0.12], "snap")
+    Rr(27, [66, 28, 32, -0.44, 0.12, -0.06], "stop")
+    Rr(44, [64, 26, 32, -0.42, 0.12, -0.08], "settle")
+    Rr(50, [65, 25, 32, -0.43, 0.11, -0.08], "drift")
     return c
 
 
@@ -409,26 +412,31 @@ def pose(parent, name, pos, rot, weight=1.0, direction=1):
 IDENTITY = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
 
 
-def sequence_xml(clip, baked):
+def clip_transforms(clip, baked):
+    """Per frame: {joint: (pos, rot)} Motor6D transforms."""
+    return [{j: to_transform(j, baked[j][f]) for j in JOINTS} for f in range(clip.frames + 1)]
+
+
+def sequence_xml(name, frames, hit_frames, loop=False):
     seq = ET.Element("Item", {"class": "KeyframeSequence", "referent": ref()})
     props = ET.SubElement(seq, "Properties")
-    prop(props, "string", "Name", clip.name)
-    prop(props, "bool", "Loop", "false")
+    prop(props, "string", "Name", name)
+    prop(props, "bool", "Loop", "true" if loop else "false")
     prop(props, "token", "Priority", "2")
-    for f in range(clip.frames + 1):
+    for f, transforms in enumerate(frames):
         kf = ET.SubElement(seq, "Item", {"class": "Keyframe", "referent": ref()})
         kp = ET.SubElement(kf, "Properties")
         prop(kp, "string", "Name", "Keyframe")
         prop(kp, "float", "Time", repr(f / FPS))
         hrp = pose(kf, "HumanoidRootPart", (0, 0, 0), IDENTITY, 1.0, direction=0)
-        pos, rot = to_transform("Root", baked["Root"][f])
+        pos, rot = transforms["Root"]
         torso = pose(hrp, "Torso", pos, rot)
         for joint in ["Neck", "RArm", "LArm"]:
-            pos, rot = to_transform(joint, baked[joint][f])
+            pos, rot = transforms[joint]
             pose(torso, PART[joint], pos, rot)
         pose(torso, "Right Leg", (0, 0, 0), IDENTITY, 0.0)
         pose(torso, "Left Leg", (0, 0, 0), IDENTITY, 0.0)
-        if f == clip.hit:
+        if f in hit_frames:
             marker = ET.SubElement(kf, "Item", {"class": "KeyframeMarker", "referent": ref()})
             mp = ET.SubElement(marker, "Properties")
             prop(mp, "string", "Name", "Hit")
@@ -436,14 +444,110 @@ def sequence_xml(clip, baked):
     return seq
 
 
+# --------------------------------------------------------------------------- full-string preview
+# Every hit is cancelled into the next one this long after it starts (about 0.15s after its
+# impact), crossfading over STRING_FADE like AnimationTrack:Play(0.1) does in game.
+STRING_NAME = "m1 string (all 5)"
+STRING_CANCEL = {"m1-1": 0.48, "m1-2": 0.55, "m1-3": 0.55, "m1-4": 0.58}
+STRING_FADE = 0.1
+STRING_END_FADE = 0.3
+
+
+def _quat(m):
+    m = np.asarray(m, float)
+    tr = m[0, 0] + m[1, 1] + m[2, 2]
+    if tr > 0:
+        sq = math.sqrt(tr + 1.0) * 2
+        q = [0.25 * sq, (m[2, 1] - m[1, 2]) / sq, (m[0, 2] - m[2, 0]) / sq, (m[1, 0] - m[0, 1]) / sq]
+    elif m[0, 0] > m[1, 1] and m[0, 0] > m[2, 2]:
+        sq = math.sqrt(1.0 + m[0, 0] - m[1, 1] - m[2, 2]) * 2
+        q = [(m[2, 1] - m[1, 2]) / sq, 0.25 * sq, (m[0, 1] + m[1, 0]) / sq, (m[0, 2] + m[2, 0]) / sq]
+    elif m[1, 1] > m[2, 2]:
+        sq = math.sqrt(1.0 + m[1, 1] - m[0, 0] - m[2, 2]) * 2
+        q = [(m[0, 2] - m[2, 0]) / sq, (m[0, 1] + m[1, 0]) / sq, 0.25 * sq, (m[1, 2] + m[2, 1]) / sq]
+    else:
+        sq = math.sqrt(1.0 + m[2, 2] - m[0, 0] - m[1, 1]) * 2
+        q = [(m[1, 0] - m[0, 1]) / sq, (m[0, 2] + m[2, 0]) / sq, (m[1, 2] + m[2, 1]) / sq, 0.25 * sq]
+    q = np.array(q)
+    return q / np.linalg.norm(q)
+
+
+def _mat(q):
+    w, x, y, z = q
+    return np.array([
+        [1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
+        [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
+        [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)],
+    ])
+
+
+def _blend(a, b, w):
+    """Blend two {joint: (pos, rot)} poses: slerp rotations, lerp positions."""
+    out = {}
+    for j in JOINTS:
+        (pa, ra), (pb, rb) = a[j], b[j]
+        qa, qb = _quat(ra), _quat(rb)
+        d = float(np.dot(qa, qb))
+        if d < 0:
+            qb, d = -qb, -d
+        if d > 0.9995:
+            q = qa + (qb - qa) * w
+        else:
+            th = math.acos(d)
+            q = (math.sin((1 - w) * th) * qa + math.sin(w * th) * qb) / math.sin(th)
+        q = q / np.linalg.norm(q)
+        out[j] = (np.array(pa) + (np.array(pb) - np.array(pa)) * w, _mat(q))
+    return out
+
+
+REST = {j: ((0.0, 0.0, 0.0), np.eye(3)) for j in JOINTS}
+
+
+def build_string(clips):
+    """clips: list of (clip, frames) in combo order -> (frames, hit frame indices)."""
+    starts, t = [], 0.0
+    for clip, _ in clips:
+        starts.append(t)
+        t += STRING_CANCEL.get(clip.name, clip.frames / FPS)
+    last_clip, last_frames = clips[-1]
+    end = starts[-1] + last_clip.frames / FPS + STRING_END_FADE
+    total = int(round(end * FPS))
+
+    def sample(frames, local):
+        return frames[min(len(frames) - 1, max(0, int(round(local * FPS))))]
+
+    out = []
+    for f in range(total + 1):
+        t = f / FPS
+        pose_now = REST
+        for i, (clip, frames) in enumerate(clips):
+            if t < starts[i]:
+                break
+            local = t - starts[i]
+            w = min(1.0, local / STRING_FADE) if i > 0 else 1.0
+            pose_now = _blend(pose_now, sample(frames, local), w)
+        tail = t - (starts[-1] + last_clip.frames / FPS)
+        if tail > 0:
+            pose_now = _blend(pose_now, REST, min(1.0, tail / STRING_END_FADE))
+        out.append(pose_now)
+    hits = {int(round((starts[i] + clip.hit / FPS) * FPS)) for i, (clip, _) in enumerate(clips)}
+    return out, hits
+
+
 def build(rig_source=None, out_dir=HERE):
     baked_all = {}
     sequences = []
+    chain = []
     for make in CLIPS:
         clip = make()
         baked = clip.bake()
         baked_all[clip.name] = {"hit": clip.hit, "frames": clip.frames, "channels": {j: baked[j].tolist() for j in JOINTS}}
-        sequences.append(sequence_xml(clip, baked))
+        frames = clip_transforms(clip, baked)
+        chain.append((clip, frames))
+        sequences.append(sequence_xml(clip.name, frames, {clip.hit}))
+    # always ship the whole string as one animation so the combo can be previewed in one go
+    string_frames, string_hits = build_string(chain)
+    sequences.append(sequence_xml(STRING_NAME, string_frames, string_hits))
     json.dump(baked_all, open(os.path.join(out_dir, "combo_data.json"), "w"))
 
     root = ET.Element("roblox", {"version": "4"})
