@@ -211,6 +211,35 @@ def blink():
 
 EFFECTS = [crackle, hand_charge, palm_burst, shock_hit, strike_marker, thunder_strike, dash_burst, blink]
 
+# How hard the lightning layers (the light-emitting ones: sparks, glows, discharges, static) are
+# turned up over the values above, and the lights with them. The air, dust and ground are left as
+# they are, so the lightning is what reads.
+BOOST = {"count": 1.8, "rate": 1.7, "br": 1.6, "size": 1.2, "light": 2.0, "range": 1.3}
+
+
+def intensify(spec):
+    """Turn the lightning in an effect up by BOOST (in place)."""
+    for layers in spec["layers"].values():
+        for layer in layers:
+            if isinstance(layer, Layer):
+                kw = layer.kw
+                if kw.get("le", 0) < 1:
+                    continue
+                if "count" in kw and kw["count"] > 1:
+                    kw["count"] = int(round(kw["count"] * BOOST["count"]))
+                if "rate" in kw:
+                    kw["rate"] = kw["rate"] * BOOST["rate"]
+                if "br" in kw:
+                    kw["br"] = kw["br"] * BOOST["br"]
+                if isinstance(kw.get("size"), (int, float)):
+                    kw["size"] = kw["size"] * BOOST["size"]
+            else:
+                layer.brightness *= BOOST["light"]
+                layer.rng *= BOOST["range"]
+                if "MaxBrightness" in layer.attrs:
+                    layer.attrs["MaxBrightness"] *= BOOST["light"]
+    return spec
+
 
 def build_effects(nen_rbxmx):
     """Folder "Effects" with every effect, and a summary {name: [(sub, layer name, class, attributes)]}."""
@@ -219,7 +248,7 @@ def build_effects(nen_rbxmx):
     ET.SubElement(ET.SubElement(folder, "Properties"), "string", {"name": "Name"}).text = "Effects"
     summary = {}
     for make in EFFECTS:
-        spec = make()
+        spec = intensify(make())
         folder.append(JE.build_effect(lib, spec))
         rows = []
         for sub, layers in spec["layers"].items():

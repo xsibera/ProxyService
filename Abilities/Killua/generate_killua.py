@@ -54,8 +54,9 @@ def lightning_beams():
     inside it) beside a PartCache folder."""
     license_text = open(os.path.join(BEAMS, "LICENSE")).read()
     note = "--[[\n\tLightning Beams by Quasiduck: https://github.com/SamyBlue/Lightning-Beams (v1.1, 406c3b9)\n" \
-           "\tLightningSparks is the pre-v1.1 sub-module, patched to work with v1.1 (see the [Killua kit patch]\n" \
-           "\tcomments). PartCache is EtiTheSpirit's (MIT). The license:\n\n" + license_text + "]]\nreturn nil\n"
+           "\tLightningSparks is the pre-v1.1 sub-module, patched to work with v1.1, and LightningBolt's\n" \
+           "\tpart cache is bigger (see the [Killua kit patch] comments). PartCache is EtiTheSpirit's (MIT).\n" \
+           "\tThe license:\n\n" + license_text + "]]\nreturn nil\n"
     return B.folder("LightningBeams", [
         B.module("LightningBolt", os.path.join(BEAMS, "LightningBolt.luau"), [
             B.module("LightningSparks", os.path.join(BEAMS, "LightningSparks.luau")),

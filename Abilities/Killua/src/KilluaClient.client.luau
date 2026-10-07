@@ -325,37 +325,83 @@ local function drop(who: Player, key: string?)
 	end
 end
 
--- Lightning Palm: the lightning gathering in the palm, then going off out of it
+-- Lightning Palm: the lightning gathering in both hands and arcing between them, then going off
+-- out of the palms into whoever they land on, and surging through for a moment after
 local function palmEffects(caster: Player, hitAt: number)
 	local character, root = parts(caster)
-	local arm = character and limb(character, "Right Arm")
-	if not (character and root and arm) then
+	local right = character and limb(character, "Right Arm")
+	local left = character and limb(character, "Left Arm")
+	if not (character and root and right and left) then
 		return
 	end
-	local charge = VFX.Attach("HandCharge", arm, HAND, { Charge = 0 })
-	keep(caster, "charge", charge)
-	keep(caster, "arcs", VFX.Crawl(character, math.max(hitAt - serverNow(), 0.05), { Rate = 14, Thickness = 0.08 }))
-	VFX.Sound("Crackle", arm, 0.8)
+	local rightCharge = VFX.Attach("HandCharge", right, HAND, { Charge = 0 })
+	local leftCharge = VFX.Attach("HandCharge", left, HAND, { Charge = 0 })
+	keep(caster, "charge", rightCharge)
+	keep(caster, "charge2", leftCharge)
+	keep(
+		caster,
+		"arcs",
+		VFX.Crawl(character, math.max(hitAt - serverNow(), 0.05) + 0.45, { Rate = 40, Thickness = 0.16 })
+	)
+	VFX.Sound("Crackle", right, 1)
 	local started = serverNow()
+	local lastArc = 0
 	local connection: RBXScriptConnection
 	connection = RunService.RenderStepped:Connect(function()
 		local t = serverNow()
-		if t >= hitAt or not arm.Parent then
+		if t >= hitAt or not right.Parent then
 			connection:Disconnect()
 			return
 		end
-		charge:SetCharge((t - started) / math.max(hitAt - started, 0.05))
+		local share = (t - started) / math.max(hitAt - started, 0.05)
+		rightCharge:SetCharge(share)
+		leftCharge:SetCharge(share)
+		-- arcs jumping between the two hands as they draw back
+		if t - lastArc > 0.05 then
+			lastArc = t
+			local r, l = handPosition(character, "Right"), handPosition(character, "Left")
+			if r and l then
+				VFX.Bolt(r, l, { Thickness = 0.22, Life = 0.07, Arrive = 0.015, Radius = 0.8, Halo = true })
+			end
+		end
 	end)
 	task.delay(math.max(hitAt - serverNow(), 0), function()
 		drop(caster, "charge")
-		if not (arm.Parent and root.Parent) then
+		drop(caster, "charge2")
+		if not (right.Parent and root.Parent) then
 			return
 		end
-		local palm = (arm.CFrame * HAND).Position
+		local r = handPosition(character, "Right") or root.Position
+		local l = handPosition(character, "Left") or root.Position
+		local palms = (r + l) / 2
 		local look = flat(root.CFrame.LookVector)
-		VFX.Play("PalmBurst", CFrame.lookAt(palm, palm + look), { Ignore = { character } })
-		VFX.Strike(palm, palm + look * 8 + Vector3.new(0, 0.5, 0), { Thickness = 0.45, Life = 0.18, Branches = 2 })
-		VFX.Sound("PalmHit", palm, 1)
+		VFX.Play("PalmBurst", CFrame.lookAt(palms, palms + look), { Ignore = { character } })
+		for _, hand in { r, l } do
+			VFX.Strike(hand, hand + look * 7 + Vector3.new(0, 0.4, 0), {
+				Thickness = 0.6,
+				Life = 0.22,
+				Branches = 4,
+				Sparks = 6,
+				Flash = 0,
+			})
+		end
+		VFX.Flash(palms + look * 1.5, 9, 26, 0.3)
+		VFX.Sound("PalmHit", palms, 1)
+		-- the shock surging on through the palms for a moment (they're held on the target)
+		for i = 1, 6 do
+			task.delay(i * 0.05, function()
+				local hand = if i % 2 == 0 then handPosition(character, "Right") else handPosition(character, "Left")
+				if hand and root.Parent then
+					local out = flat(root.CFrame.LookVector)
+					VFX.Bolt(hand, hand + out * 3 + Vector3.new(0, (i % 3 - 1) * 0.8, 0), {
+						Thickness = 0.3,
+						Life = 0.08,
+						Arrive = 0.015,
+						Radius = 0.9,
+					})
+				end
+			end)
+		end
 	end)
 end
 
@@ -393,7 +439,13 @@ local function thunderboltEffects(caster: Player, target: Vector3, strikeAt: num
 			lastArc = t
 			local left, right = handPosition(character, "Left"), handPosition(character, "Right")
 			if left and right then
-				VFX.Bolt(left, right, { Thickness = 0.25, Life = 0.09, Radius = 0.7, Arrive = 0.02 })
+				VFX.Bolt(left, right, { Thickness = 0.35, Life = 0.09, Radius = 0.9, Arrive = 0.02 })
+				VFX.Bolt((left + right) / 2, (left + right) / 2 + Vector3.new(0, 2.5, 0), {
+					Thickness = 0.25,
+					Life = 0.07,
+					Radius = 1.2,
+					Arrive = 0.015,
+				})
 			end
 		end
 	end)
@@ -405,9 +457,23 @@ local function thunderboltEffects(caster: Player, target: Vector3, strikeAt: num
 		VFX.Strike(
 			hands,
 			target,
-			{ Thickness = 1.1, Life = 0.35, Arrive = 0.05, Branches = 4, Radius = 2.2, Sparks = 8 }
+			{ Thickness = 1.6, Life = 0.4, Arrive = 0.05, Branches = 7, Radius = 2.4, Sparks = 12, Flash = 0 }
 		)
-		VFX.Bolt(target + Vector3.new(0, 70, 0), target, { Thickness = 0.6, Life = 0.25, Arrive = 0.06, Radius = 5 })
+		-- the sky answers: three bolts come down on the spot, just apart
+		for i, offset in { Vector3.zero, Vector3.new(2.5, 0, -1.5), Vector3.new(-2, 0, 2) } do
+			task.delay((i - 1) * 0.06, function()
+				VFX.Strike(target + offset + Vector3.new(0, 80, 0), target + offset * 0.4, {
+					Thickness = if i == 1 then 1.2 else 0.7,
+					Life = 0.3,
+					Arrive = 0.05,
+					Radius = 6,
+					Branches = 4,
+					Flash = 0,
+				})
+			end)
+		end
+		VFX.Flash(target + Vector3.new(0, 4, 0), 14, 60, 0.5)
+		VFX.Crawl(character, 0.35, { Rate = 45, Thickness = 0.18, Leap = 0.5 })
 		VFX.Play("ThunderStrike", CFrame.new(target + Vector3.new(0, 0.3, 0)), { Ignore = { character } })
 		VFX.Sound("Thunder", target, 1)
 	end)
@@ -421,7 +487,7 @@ local function stanceEffects(caster: Player, untilTime: number)
 	end
 	local seconds = math.max(untilTime - serverNow(), 0.05)
 	keep(caster, "crackle", VFX.Attach("Crackle", root, CFrame.identity, { Charge = 1 }))
-	keep(caster, "arcs", VFX.Crawl(character, seconds, { Rate = 12, Thickness = 0.08 }))
+	keep(caster, "arcs", VFX.Crawl(character, seconds, { Rate = 38, Thickness = 0.16, Leap = 0.45 }))
 	VFX.Sound("Crackle", root, 0.7)
 	task.delay(seconds, function()
 		drop(caster, "crackle")
@@ -441,7 +507,19 @@ local function dashEffects(caster: Player, from: Vector3, to: Vector3)
 	local ignore = if character then { character } else {}
 	VFX.Play("DashBurst", CFrame.lookAt(from, from + dir), { Ignore = ignore })
 	VFX.Play("DashBurst", CFrame.lookAt(to, to + dir), { Ignore = ignore })
-	VFX.Bolt(from, to, { Thickness = 0.5, Life = 0.16, Arrive = 0.03, Radius = 1.2, Sparks = 4 })
+	VFX.Bolt(from, to, { Thickness = 0.85, Life = 0.2, Arrive = 0.03, Radius = 1.3, Sparks = 6 })
+	VFX.Bolt(from + Vector3.new(0, 0.8, 0), to + Vector3.new(0, 0.8, 0), {
+		Thickness = 0.35,
+		Life = 0.16,
+		Arrive = 0.04,
+		Radius = 2,
+		Halo = false,
+	})
+	VFX.Flash(from, 5, 16, 0.18)
+	VFX.Flash(to, 7, 18, 0.22)
+	if character then
+		VFX.Crawl(character, 0.3, { Rate = 40, Thickness = 0.15, Leap = 0.4 })
+	end
 	VFX.Sound("Dash", to, 1)
 end
 
@@ -464,16 +542,29 @@ local function hitEffects(
 		Ignore = { victim },
 	})
 	VFX.Sound("Zap", position, if outcome == "Hit" then 1 else 0.5)
+	VFX.Flash(position, if outcome == "Hit" then 6 else 3, 16, 0.2)
 	if ability == "Whirlwind" and character then
 		local hand = handPosition(character, "Right")
 		if hand then
-			VFX.Bolt(hand, position, { Thickness = 0.3, Life = 0.12, Arrive = 0.02 })
+			VFX.Bolt(hand, position, { Thickness = 0.45, Life = 0.14, Arrive = 0.02 })
+		end
+	end
+	if outcome == "Hit" then
+		-- bolts thrown off them where it went in
+		local away = if dir ~= Vector3.zero then dir else Vector3.zAxis
+		for i = 1, 3 do
+			local spread = Vector3.new(math.sin(i * 2.1), (i - 2) * 0.6, math.cos(i * 2.1)) * 1.5
+			VFX.Bolt(
+				position,
+				position + away * 3 + spread,
+				{ Thickness = 0.28, Life = 0.1, Arrive = 0.02, Radius = 0.8 }
+			)
 		end
 	end
 	if outcome == "Hit" and kind == "Shock" and victim:IsA("Model") then
 		local untilTime = victim:GetAttribute("StunnedUntil")
 		local seconds = if typeof(untilTime) == "number" then untilTime - serverNow() else 0.8
-		VFX.Crawl(victim, math.clamp(seconds, 0.3, 2), { Rate = 26, Thickness = 0.12, Reach = 0.8 })
+		VFX.Crawl(victim, math.clamp(seconds, 0.3, 2), { Rate = 45, Thickness = 0.18, Reach = 0.9, Leap = 0.35 })
 	end
 end
 
@@ -771,7 +862,8 @@ Remote.OnClientEvent:Connect(function(kind: string, a: any, b: any, c: any, d: a
 			VFX.Ghost(character, c, 0.4)
 			VFX.Play("Blink", d, { Ignore = { character } })
 		end
-		VFX.Bolt(c.Position, d.Position, { Thickness = 0.35, Life = 0.14, Arrive = 0.02, Radius = 1.5 })
+		VFX.Bolt(c.Position, d.Position, { Thickness = 0.7, Life = 0.18, Arrive = 0.02, Radius = 1.6, Sparks = 5 })
+		VFX.Flash(d.Position, 8, 20, 0.25)
 		VFX.Sound("Dash", d.Position, 1)
 		if a == player then
 			local _, root = parts(player)

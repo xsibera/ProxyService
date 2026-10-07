@@ -4,7 +4,7 @@ Killua Zoldyck's lightning from Hunter x Hunter as a Roblox ability kit, with an
 
 | Key | Ability | What it does | How to answer it |
 |---|---|---|---|
-| **Z** | Lightning Palm | Coiled low with the palm crackling by the hip, a short lunge, then the palm driven out. Paralyses the target (a Shock stun, 1.1s). | **Parry** it (the wind-up is the tell), or block it. |
+| **Z** | Lightning Palm | As in the anime, he shocks you by putting his palms on you. He sinks into a low crouch with both hands drawn back by his hips and lightning arcing between them, blurs forward, and drives both palms flat into your chest. Then he holds them there while the shock surges through. It paralyses the target (a Shock stun, 1.1s). | **Parry** it (the crouch is the tell), or block it. |
 | **X** | Thunderbolt (Narukami) | Killua leaps, gathers lightning between his hands at the top, and brings a bolt down where he aims. It locks on to whoever is near the aim line. A ring on the floor shows where it will land for the whole leap. | **Never parryable**: get out of the ring. Blocking works from any side, but takes 70 of the 100 guard. |
 | **C** | Whirlwind (Shippu Jinrai) | A counter stance for 0.65s. If a hit lands on him in that window, he blinks behind the attacker and answers with a rising claw, a spinning heel kick and a double palm. None of those can be blocked or parried. | **Don't attack into it**: wait it out. If nothing comes, he's left open for 0.45s. Unblockable and uncounterable hits still go through. |
 | **V** | Lightning Dash (Godspeed) | Up to **three teleports** in a row (press V again within 0.9s), each striking whoever he passes through or lands beside. He's untouchable for a moment in each one. With someone in front of him the chain zigzags: in front of them, through to behind, and back through. | **Parry** a strike, which ends the chain, or block. Turn to face him: a strike comes **from where he started the dash**, so the second dash hits a blocker from behind. |
@@ -129,14 +129,19 @@ Killua moves like the assassin he is: low and loose, hands open like claws, and 
 
 | Clip | Length | What it is |
 |---|---|---|
-| `Killua Palm` | 0.95s | Coiled low with the palm drawn back by the hip, crackling. Then a lunge and the palm driven out at chest height. **Hit** at 0.35s. |
+| `Killua Palm` | 1.0s | Lightning Palm: he sinks into his low, hunched crouch with both hands drawn back by his hips. Then he lunges and drives both palms flat into the chest, square on, leaning his whole weight in (**Hit** at 0.35s). The palms stay on the target, arms locked and shaking as the shock surges through, before he eases off, still low. |
 | `Killua Thunderbolt` | 0.95s | A crouch, the leap, and both hands gathered overhead at the top. Then both palms slam down at the target as the bolt drops. **Hit** at 0.55s. It ends falling, legs reaching for the floor. |
 | `Killua Land` | 0.4s | The landing after Narukami, played when the feet touch down. |
 | `Killua Stance` | 1.1s | Whirlwind: dropped into a low ready stance, hands loose, swaying, for the counter window. Then up again if nothing came. |
 | `Killua Counter` | 0.9s | After the blink behind the attacker: a rising claw, a spinning heel kick and a double palm. **Hits** at 7, 15 and 26/60s. |
 | `Killua Dash 1 / 2 / 3` | 0.45 / 0.45 / 0.6s | Arriving low out of the teleport and striking at once: a right claw, a left claw back the other way, then a lunging double palm. **Hits** at 6, 6 and 7/60s. |
 
-Every clip keys the legs: these are committed attacks, so the walk doesn't drive them. Key poses:
+Every clip keys the legs: these are committed attacks, so the walk doesn't drive them. The legs follow your reference ability animations (ice downslam, leg sweep):
+- **Turning with the body:** the feet are placed relative to the hips, not pinned to the floor. When the torso whips round, the stance pivots with it.
+- **No crossing:** each foot stays in its own lane under its own hip, so the legs never cross. A low stance is faked the way the reference does it, by sliding the legs up into the hips.
+- **Checked:** the build fails if any frame brings the feet closer than 0.9 studs side to side (the reference never goes under 0.96).
+
+Key poses:
 
 ![lightning palm and thunderbolt](previews/lightning_palm_and_thunderbolt.png)
 ![whirlwind](previews/whirlwind.png)
@@ -151,11 +156,18 @@ The lightning itself is Lightning Beams. Everything around it is built from your
 
 The lightning is white at the core and pale electric blue round it, going deeper blue at the edges. Soft glows stand in for flash frames.
 
+It's turned up hard:
+- **Bolts:** every bolt has a wide, see-through deep-blue halo round its core, so it glows.
+- **Light:** strikes throw a flash of cold light on everything round them.
+- **Narukami:** three bolts come down from the sky one after another, with branches forking off.
+- **Arcs:** arcs crawl densely over Killua through every move, and some leap off him into the air. Anyone paralysed crackles with them.
+- **Emitters:** every lightning layer (sparks, glows, discharges, static) is turned up by `BOOST` in `effects.py`: 1.8× the sparks, 1.6× the brightness, 1.2× the size and 2× the lights. Turn that down if it's too much.
+
 | Effect | When | What |
 |---|---|---|
 | `Crackle` | Whirlwind's stance | Static over the body. |
-| `HandCharge` | Lightning Palm's wind-up | Lightning gathering in the palm, growing to the hit. |
-| `PalmBurst` | the palm's hit | The lightning going off out of the palm. |
+| `HandCharge` | Lightning Palm's wind-up, in both hands | Lightning gathering in the palms, growing to the hit, with bolts arcing between them. |
+| `PalmBurst` | the palms' hit | The lightning going off out of the palms, with bolts forking on through the target and more surging out of the palms for a moment after. |
 | `ShockHit` | on each victim | A burst of sparks through them. Shocked victims also get arcs crawling over them for as long as they're paralysed. |
 | `StrikeMarker` | through Narukami's leap | The warning ring on the floor where the bolt will land. |
 | `ThunderStrike` | where Narukami lands | The bolt's impact: sparks, an air ring, dust, rocks, cracks and a scorch mark. |
@@ -193,10 +205,10 @@ There are headless tests against Place1's mock engine (`luaurun`, see `Place1/RE
   - the dash chain's rules, the server's dash checks, and the dash mixup;
   - interrupts, the loadout, bad input, teams and death.
 - `luaurun tests/standalone.luau`, 10 checks: the same server without the parry system or the menu.
-- `luaurun tests/client.luau`, 76 checks:
+- `luaurun tests/client.luau`, 78 checks:
   - the keys through the hotbar;
   - the animations;
-  - the palm's charge and lunge, and Narukami's leap, hang and landing;
+  - the palm's charge in both hands, its lunge and the flash on contact, and Narukami's leap, hang and landing;
   - the stance and the counter's blink;
   - the dash zigzag and its targeting;
   - the server's denials and stops;

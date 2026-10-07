@@ -10,11 +10,15 @@
 	KilluaVFX.Bolt(from, to, options?) -> handle
 		One bolt between two points: Vector3s, or Attachments (it then follows them). options:
 		Thickness, Life (seconds it shows), Arrive (seconds it takes to reach the end), Radius
-		(how far it wanders), Parts, Curve (bend), Sparks (sparks fly off it), Color.
-	KilluaVFX.Strike(from, to, options?)    a bolt with branches forking off it (Narukami, the palm)
+		(how far it wanders), Parts, Curve (bend), Sparks (sparks fly off it), Color, Halo (a wide,
+		see-through deep blue bolt round the core so it glows; on by default for bolts 0.3+ thick).
+	KilluaVFX.Strike(from, to, options?)    a bolt with branches forking off it and a flash of light
+		(Narukami, the palm); options also: Branches, Flash (brightness, 0 for none)
 	KilluaVFX.Crawl(model, seconds, options?) -> handle
-		Arcs crawling over a body: short bolts between points on its parts, as long as it lasts.
-		handle:Stop() ends it early. options: Rate (arcs a second), Thickness, Reach.
+		Arcs crawling over a body: short bolts between points on its parts, as long as it lasts, some
+		of them leaping off it into the air. handle:Stop() ends it early. options: Rate (arcs a
+		second), Thickness, Reach (how far they wander), Leap (share that leap off, 0..1).
+	KilluaVFX.Flash(at, brightness?, range?, seconds?)   a cold blue-white light that fades
 	KilluaVFX.Ghost(model, cframe?, seconds?)   a pale afterimage of the body, fading
 	KilluaVFX.available() -> boolean        false if LightningBeams is missing (bolts are then skipped)
 
@@ -35,7 +39,9 @@ local WHITE_BLUE = ColorSequence.new({
 	ColorSequenceKeypoint.new(0.5, Color3.fromRGB(170, 225, 255)),
 	ColorSequenceKeypoint.new(1, Color3.fromRGB(110, 190, 255)),
 })
+local HALO = ColorSequence.new(Color3.fromRGB(60, 150, 255), Color3.fromRGB(120, 200, 255))
 local GHOST_COLOR = Color3.fromRGB(150, 215, 255)
+local FLASH_COLOR = Color3.fromRGB(185, 225, 255)
 
 function KilluaVFX.Play(name: string, cframe: CFrame, options: any?): BasePart
 	return Effects:Play(name, cframe, options)
@@ -100,6 +106,33 @@ local function positionOf(point: Vector3 | Attachment): Vector3
 	return if typeof(point) == "Instance" then point.WorldPosition else point
 end
 
+local function newBolt(Bolt: any, from: any, to: any, o: any, length: number, axis: Vector3, halo: boolean): any
+	local parts = o.Parts or math.clamp(math.floor(length * 1.6), 6, 36)
+	if halo then
+		parts = math.max(4, math.floor(parts / 2)) -- a blur round the core: it doesn't need the detail
+	end
+	local bolt = Bolt.new(anchor(from, axis), anchor(to, axis), parts)
+	local life = o.Life or 0.2
+	local arrive = math.max(o.Arrive or 0.04, 0.01)
+	local thickness = o.Thickness or 0.5
+	bolt.PulseSpeed = 1 / arrive
+	bolt.PulseLength = math.max(life / arrive - 1, 0.5)
+	bolt.FadeLength = o.Fade or 0.25
+	bolt.Thickness = if halo then thickness * 2.8 else thickness
+	bolt.MinThicknessMultiplier, bolt.MaxThicknessMultiplier = if halo then 0.6 else 0.5, 1
+	bolt.MinRadius, bolt.MaxRadius = 0, o.Radius or math.clamp(length * 0.1, 0.35, 3.5)
+	bolt.Frequency = o.Frequency or 2.2
+	bolt.AnimationSpeed = o.AnimationSpeed or 10
+	bolt.CurveSize0, bolt.CurveSize1 = o.Curve or 0, o.Curve or 0
+	bolt.Color = if halo then HALO else (o.Color or WHITE_BLUE)
+	bolt.ColorOffsetSpeed = 4
+	bolt.ContractFrom = 0.5
+	if halo then
+		bolt.MinTransparency = 0.62 -- a soft glow round the core, never solid
+	end
+	return bolt
+end
+
 function KilluaVFX.Bolt(from: Vector3 | Attachment, to: Vector3 | Attachment, options: any?): Handle
 	local Bolt = beams()
 	if not Bolt then
@@ -110,44 +143,64 @@ function KilluaVFX.Bolt(from: Vector3 | Attachment, to: Vector3 | Attachment, op
 	local along = b - a
 	local axis = if along.Magnitude > 1e-3 then along.Unit else Vector3.yAxis
 	local length = along.Magnitude
-	local parts = o.Parts or math.clamp(math.floor(length * 1.6), 6, 40)
-	local bolt = Bolt.new(anchor(from, axis), anchor(to, axis), parts)
-	local life = o.Life or 0.2
-	local arrive = math.max(o.Arrive or 0.04, 0.01)
-	bolt.PulseSpeed = 1 / arrive
-	bolt.PulseLength = math.max(life / arrive - 1, 0.5)
-	bolt.FadeLength = o.Fade or 0.25
-	bolt.Thickness = o.Thickness or 0.35
-	bolt.MinThicknessMultiplier, bolt.MaxThicknessMultiplier = 0.4, 1
-	bolt.MinRadius, bolt.MaxRadius = 0, o.Radius or math.clamp(length * 0.08, 0.3, 3)
-	bolt.Frequency = o.Frequency or 1.6
-	bolt.AnimationSpeed = o.AnimationSpeed or 8
-	bolt.CurveSize0, bolt.CurveSize1 = o.Curve or 0, o.Curve or 0
-	bolt.Color = o.Color or WHITE_BLUE
-	bolt.ColorOffsetSpeed = 4
-	bolt.ContractFrom = 0.5
+	local bolt = newBolt(Bolt, from, to, o, length, axis, false)
+	local wantHalo = if o.Halo == nil then (o.Thickness or 0.5) >= 0.3 else o.Halo
+	local halo = if wantHalo then newBolt(Bolt, from, to, o, length, axis, true) else nil
 	local sparks = nil
 	if o.Sparks and LightningSparks then
 		sparks = LightningSparks.new(bolt, o.Sparks == true and 6 or o.Sparks)
-		sparks.MinDistance, sparks.MaxDistance = 1.5, 4
+		sparks.MinDistance, sparks.MaxDistance = 1.5, 4.5
 	end
 	local handle = {}
 	function handle.Stop(_self: Handle)
 		if sparks then
 			sparks.Enabled = false
 		end
-		if not bolt._Destroyed then
-			bolt:DestroyDissipate(0.12, 0.4)
+		for _, b in { bolt, halo } do
+			if b and not b._Destroyed then
+				b:DestroyDissipate(0.12, 0.4)
+			end
 		end
 	end
 	return (handle :: any) :: Handle
+end
+
+-- a cold blue-white light at a point that fades out (so a strike lights up what's round it)
+function KilluaVFX.Flash(at: Vector3, brightness: number?, range: number?, seconds: number?)
+	local holder = Instance.new("Part")
+	holder.Name = "KilluaFlash"
+	holder.Anchored = true
+	holder.CanCollide = false
+	holder.CanQuery = false
+	holder.CanTouch = false
+	holder.Transparency = 1
+	holder.Size = Vector3.new(0.2, 0.2, 0.2)
+	holder.CFrame = CFrame.new(at)
+	local light = Instance.new("PointLight")
+	light.Color = FLASH_COLOR
+	light.Brightness = brightness or 6
+	light.Range = range or 20
+	light.Shadows = false
+	light.Parent = holder
+	holder.Parent = workspace
+	local life = seconds or 0.25
+	TweenService:Create(light, TweenInfo.new(life, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Brightness = 0,
+	}):Play()
+	Debris:AddItem(holder, life + 0.05)
 end
 
 -- a bolt with branches forking off it at random points along the way
 function KilluaVFX.Strike(from: Vector3, to: Vector3, options: any?): Handle
 	local o = options or {}
 	local main = KilluaVFX.Bolt(from, to, o)
-	local branches = o.Branches or 3
+	if o.Flash ~= 0 then
+		KilluaVFX.Flash(to, o.Flash or 7, math.clamp((to - from).Magnitude * 1.5, 14, 45), (o.Life or 0.2) + 0.1)
+	end
+	if not beams() then
+		return main
+	end
+	local branches = o.Branches or 5
 	local length = (to - from).Magnitude
 	local rng = Random.new()
 	for _ = 1, branches do
@@ -158,8 +211,8 @@ function KilluaVFX.Strike(from: Vector3, to: Vector3, options: any?): Handle
 			+ (to - from).Unit * length * rng:NextNumber(0.1, 0.3)
 			+ side * length * rng:NextNumber(0.1, 0.25)
 		KilluaVFX.Bolt(start, finish, {
-			Thickness = (o.Thickness or 0.35) * 0.45,
-			Life = (o.Life or 0.2) * 0.7,
+			Thickness = (o.Thickness or 0.5) * 0.5,
+			Life = (o.Life or 0.2) * 0.8,
 			Arrive = (o.Arrive or 0.04) * 0.8,
 			Radius = (o.Radius or 1) * 0.5,
 		})
@@ -206,7 +259,8 @@ function KilluaVFX.Crawl(model: Instance, seconds: number, options: any?): Handl
 		return NO_HANDLE :: any
 	end
 	local rng = Random.new()
-	local rate = o.Rate or 22
+	local rate = o.Rate or 34
+	local leap = o.Leap or 0.3
 	local untilTime = os.clock() + seconds
 	local carry = 0
 	local connection: RBXScriptConnection
@@ -219,18 +273,33 @@ function KilluaVFX.Crawl(model: Instance, seconds: number, options: any?): Handl
 		while carry >= 1 do
 			carry -= 1
 			local p0 = parts[rng:NextInteger(1, #parts)]
-			local p1 = parts[rng:NextInteger(1, #parts)]
-			local a0, a1 = pointOn(p0, rng), pointOn(p1, rng)
-			local life = rng:NextNumber(0.06, 0.14)
-			KilluaVFX.Bolt(a0, a1, {
-				Thickness = o.Thickness or 0.12,
-				Life = life,
-				Arrive = 0.02,
-				Radius = o.Reach or 0.6,
-				Parts = 8,
-			})
+			local a0 = pointOn(p0, rng)
+			local life = rng:NextNumber(0.06, 0.15)
+			local thickness = o.Thickness or 0.16
+			if rng:NextNumber() < leap then
+				-- an arc leaping off the body into the air
+				local out = a0.WorldPosition + rng:NextUnitVector() * rng:NextNumber(1.5, 3.2)
+				KilluaVFX.Bolt(a0, out, {
+					Thickness = thickness * 0.8,
+					Life = life,
+					Arrive = 0.02,
+					Radius = 0.7,
+					Parts = 8,
+					Halo = false,
+				})
+			else
+				local a1 = pointOn(parts[rng:NextInteger(1, #parts)], rng)
+				KilluaVFX.Bolt(a0, a1, {
+					Thickness = thickness,
+					Life = life,
+					Arrive = 0.02,
+					Radius = o.Reach or 0.7,
+					Parts = 8,
+					Halo = thickness >= 0.15,
+				})
+				Debris:AddItem(a1, life + 0.3)
+			end
 			Debris:AddItem(a0, life + 0.3)
-			Debris:AddItem(a1, life + 0.3)
 		end
 	end)
 	local handle = {}

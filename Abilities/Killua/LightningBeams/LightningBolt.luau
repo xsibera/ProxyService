@@ -6,7 +6,7 @@
 	i.e. You can change a property at any time after a LightningBolt instance is created and it will still update the look of the bolt
 --]]
 
-local PARTS_IN_CACHE = 1000 --Recommend setting higher if you intend to use LightningSparks
+local PARTS_IN_CACHE = 2500 -- [Killua kit patch] was 1000: the kit's lightning (halos, arcs, Narukami's three bolts) needs more
 local clock = os.clock
 local workspace, RunService = game:GetService("Workspace"), game:GetService("RunService")
 local parent = workspace.Terrain
@@ -27,6 +27,7 @@ BoltPart.Transparency = 1
 
 local PartCache = require(script.Parent.PartCache:WaitForChild("PartCache"))
 local LightningCache = PartCache.new(BoltPart, PARTS_IN_CACHE)
+LightningCache.ExpansionSize = 250 -- [Killua kit patch] was 10 (and a warning every 10 parts past the cache)
 LightningCache:SetCacheParent(parent)
 
 --*

@@ -48,9 +48,47 @@ def _jajanken_solvers():
 J = _jajanken_solvers()
 
 FULL = J.FULL
-arm_w, arm_t, reach, heading, feet_at, plant = J.arm_w, J.arm_t, J.reach, J.heading, J.feet_at, J.plant
+arm_w, arm_t, reach, heading, plant = J.arm_w, J.arm_t, J.reach, J.heading, J.plant
 
 STANDING = [0, 0, 0, 0, 0, 0]
+GROUND = J.GROUND
+MIN_FEET_GAP = 0.9  # studs: the feet never come closer than this side to side (the reference: 0.96+)
+
+
+def stance_at(c, f, root, left, right, k="ease"):
+    """Key both legs at frame f with the feet planted on spots given in the hips' own frame: (x, z),
+    x out to the side (left foot negative, right positive), z back (+) or forward (-) from under the
+    hips. The stance turns with the body, as in the reference ability animations (ice downslam, leg
+    sweep): each foot stays in its own lane under its own hip, so the legs never cross, and when the
+    torso whips round the feet pivot with it instead of staying pinned to the floor."""
+    torso = J.torso_of(root)
+    centre = torso[:3, 3]
+    right_h = torso[:3, 0] * [1, 0, 1]
+    back_h = torso[:3, 2] * [1, 0, 1]
+    right_h, back_h = right_h / np.linalg.norm(right_h), back_h / np.linalg.norm(back_h)
+    for joint, (x, z) in (("LLeg", left), ("RLeg", right)):
+        spot = np.array([centre[0], GROUND, centre[2]]) + right_h * x + back_h * z
+        c.key(joint, f, J.leg_to(joint, root, spot), k)
+
+
+def feet_gap(baked, f):
+    """Side-to-side distance between the feet at frame f, in the torso's frame (right minus left)."""
+    torso = J.torso_of(baked["Root"][f])
+    inv = np.linalg.inv(torso)
+    xs = {}
+    for joint in ("LLeg", "RLeg"):
+        foot = J.foot(joint, baked["Root"][f], baked[joint][f])
+        xs[joint] = (inv @ np.append(foot, 1))[0]
+    return xs["RLeg"] - xs["LLeg"]
+
+
+def check_legs(c, baked):
+    """The feet stay apart (never crossing) in every frame of a clip that keys the legs."""
+    if "LLeg" not in baked:
+        return
+    worst = min(range(len(baked["Root"])), key=lambda f: feet_gap(baked, f))
+    gap = feet_gap(baked, worst)
+    assert gap >= MIN_FEET_GAP, "%s: the feet come %.2f studs apart at f%d (crossing)" % (c.name, gap, worst)
 
 
 def rest(c, f=0):
@@ -68,61 +106,61 @@ def N(c):
 
 # --------------------------------------------------------------------------- Lightning Palm
 def palm():
-    """Lightning Palm: a small counter-move (the right shoulder dips at the target), then he drops
-    low and turns his right side away, the right palm drawn back by the hip with the lightning
-    gathering in it and the left hand out at the target like a claw; a beat, then he lunges: the
-    torso whips ~115 deg round and the palm is driven straight out at chest height, the left hand
-    yanked back to the hip. Hit at 0.35s; the palm stays out and drifts."""
-    c = Clip("Killua Palm", 57, hit=21, arm="RArm", joints=FULL)
+    """Lightning Palm, as in the anime: Killua shocks someone by putting his palms on them. He sinks
+    into his low, hunched assassin's crouch with both hands drawn back by his hips, fingers open and
+    the lightning crackling between them; the client blurs him forward (LungeAt) and he drives both
+    palms flat into the target's chest, square on, leaning his whole weight in (Hit at 0.35s). He
+    keeps them there while the shock surges through - the arms locked and shaking - then eases off,
+    still low, palms out."""
+    c = Clip("Killua Palm", 60, hit=21, arm="RArm", joints=FULL)
+    c.slerp = {"RArm", "LArm"}
     rest(c)
-    dip = [-6, 10, -2, 0, -0.15, -0.05]
-    coil = [-18, -76, 9, 0.1, -0.95, 0.25]
-    loaded = [-19, -82, 10, 0.1, -1.0, 0.28]
-    drive = [-24, 32, -8, -0.05, -0.85, -1.25]
-    over = [-23, 40, -9, -0.05, -0.83, -1.35]
-    held = [-18, 28, -6, -0.04, -0.86, -1.15]
-    drift = [-17, 27, -5, -0.04, -0.87, -1.13]
+    dip = [-8, 6, -1, 0, -0.2, 0.05]
+    crouch = [-20, -16, 4, 0, -0.95, 0.4]
+    loaded = [-22, -20, 5, 0, -1.02, 0.45]
+    drive = [-32, 4, -1, 0, -0.82, -1.3]
+    contact = [-33, 6, -1, 0, -0.8, -1.42]
+    held = [-24, 3, 0, 0, -0.86, -1.15]
+    drift = [-23, 2, 0, 0, -0.87, -1.12]
     r = R(c)
     r(4, dip, "decel")
-    r(13, coil, "coil")
+    r(12, crouch, "coil")
     r(17, loaded, "slowin")
     r(21, drive, "whip")
-    r(25, over, "stop")
-    r(41, held, "settle")
-    r(57, drift, "drift")
+    r(24, contact, "stop")
+    r(44, held, "settle")
+    r(60, drift, "drift")
     n = N(c)
-    n(4, [-4, 0, 2], "decel")
-    n(13, [-10, 0, -6], "coil")
-    n(20, [-14, 0, 5], "snap")
-    n(25, [-16, 0, 8], "stop")
-    n(41, [-12, 0, 6], "settle")
-    n(57, [-12, 0, 6], "drift")
-    # the palm: dips forward, chambers back by the right hip, then drives straight out palm-first
-    c.key("RArm", 4, reach("RArm", dip, heading(10, -50), 0.1, twist=40), "decel")
-    c.key("RArm", 12, arm_w("RArm", coil, [1.7, -1.35, 1.05], twist=70), "coil")
-    c.key("RArm", 17, arm_w("RArm", loaded, [1.78, -1.3, 1.25], twist=80), "slowin")
-    c.key("RArm", 19, reach("RArm", drive, heading(20, -18), 0.0, twist=85), "snap")
-    c.key("RArm", 21, reach("RArm", drive, heading(-4, 4), 0.95, twist=90), "armstrike")
-    c.key("RArm", 25, reach("RArm", over, heading(-5, 2), 1.1, twist=90), "stop")
-    c.key("RArm", 41, reach("RArm", held, heading(-4, 3), 0.85, twist=90), "settle")
-    c.key("RArm", 57, reach("RArm", drift, heading(-4, 2), 0.8, twist=90), "drift")
-    # the off hand: a claw out at the target while he winds, then thrown back to the hip
-    c.key("LArm", 4, reach("LArm", dip, heading(-10, -55), 0.05, twist=30), "decel")
-    c.key("LArm", 12, reach("LArm", coil, heading(-14, -8), 0.5, twist=50), "coil")
-    c.key("LArm", 17, reach("LArm", loaded, heading(-12, -6), 0.55, twist=50), "slowin")
-    c.key("LArm", 22, arm_w("LArm", drive, [-1.95, -1.5, 0.3]), "snap")
-    c.key("LArm", 25, arm_w("LArm", over, [-2.0, -1.55, 0.45]), "stop")
-    c.key("LArm", 41, arm_w("LArm", held, [-1.9, -1.5, 0.25]), "settle")
-    c.key("LArm", 57, arm_w("LArm", drift, [-1.9, -1.55, 0.2]), "drift")
-    # legs: wide and low in the coil (left foot at the target), then the lunge: the right foot is
-    # dragged up behind the drive
-    feet_at(c, 4, dip, (-0.55, -0.15), (0.55, 0.1), "decel")
-    feet_at(c, 13, coil, (-0.95, -1.35), (0.95, 1.2), "coil")
-    feet_at(c, 17, loaded, (-0.95, -1.35), (0.95, 1.2), "slowin")
-    feet_at(c, 21, drive, (-0.95, -2.3), (0.8, 0.0), "whip")
-    feet_at(c, 25, over, (-0.95, -2.35), (0.8, -0.15), "stop")
-    feet_at(c, 41, held, (-0.95, -2.3), (0.8, 0.0), "settle")
-    feet_at(c, 57, drift, (-0.95, -2.3), (0.8, 0.0), "drift")
+    n(4, [-6, 0, 0], "decel")
+    n(12, [-16, 0, -3], "coil")  # chin down, glaring up from under the fringe
+    n(17, [-18, 0, -3], "slowin")
+    n(21, [-20, 0, 2], "snap")
+    n(24, [-22, 0, 3], "stop")
+    n(44, [-15, 0, 1], "settle")
+    n(60, [-14, 0, 1], "drift")
+    for joint, s in (("RArm", 1), ("LArm", -1)):
+        # a flick of the hands forward, then drawn back by the hips, palms open and turned out
+        c.key(joint, 4, reach(joint, dip, heading(s * 15, -60), 0.15, twist=s * 30), "decel")
+        c.key(joint, 12, arm_w(joint, crouch, [s * 1.35, -1.55, 0.75], twist=s * 75), "coil")
+        c.key(joint, 17, arm_w(joint, loaded, [s * 1.4, -1.6, 0.95], twist=s * 85), "slowin")
+        # both palms driven flat into the chest, fingers up
+        c.key(joint, 19, reach(joint, drive, heading(s * 20, -25), 0.1, twist=s * 90), "snap")
+        c.key(joint, 21, reach(joint, drive, heading(s * 7, 1), 0.95, twist=s * 90), "armstrike")
+        c.key(joint, 24, reach(joint, contact, heading(s * 6, 0), 1.1, twist=s * 90), "stop")
+        # the shock surging through: the locked arms shake against the target
+        for f, jitter in ((27, 4), (30, -3), (33, 3), (36, -2)):
+            c.key(joint, f, reach(joint, contact, heading(s * (6 + jitter * 0.6), jitter * 0.8), 1.08, twist=s * 90))
+        c.key(joint, 44, reach(joint, held, heading(s * 6, 0), 0.8, twist=s * 88), "settle")
+        c.key(joint, 60, reach(joint, drift, heading(s * 6, -1), 0.75, twist=s * 88), "drift")
+    # legs: the low stance, left foot leading; the lunge carries the hips forward over the front foot
+    # with the right leg driving out long behind
+    stance_at(c, 4, dip, (-0.6, -0.15), (0.6, 0.15), "decel")
+    stance_at(c, 12, crouch, (-0.85, -0.75), (0.85, 0.8), "coil")
+    stance_at(c, 17, loaded, (-0.85, -0.75), (0.85, 0.8), "slowin")
+    stance_at(c, 21, drive, (-0.8, -0.85), (0.75, 1.55), "whip")
+    stance_at(c, 24, contact, (-0.8, -0.9), (0.75, 1.65), "stop")
+    stance_at(c, 44, held, (-0.8, -0.85), (0.75, 1.4), "settle")
+    stance_at(c, 60, drift, (-0.8, -0.85), (0.75, 1.4), "drift")
     return c
 
 
@@ -173,7 +211,7 @@ def thunderbolt():
         c.key(joint, 37, reach(joint, over, heading(side * 6, -52), 1.0, twist=side * 90), "stop")
         c.key(joint, 57, reach(joint, fall, heading(side * 12, -35), 0.55, twist=side * 80), "settle")
     G = lambda leg, f, v, k="ease": c.key(leg, f, v, k)  # noqa: E731
-    feet_at(c, 5, crouch, (-0.75, -0.2), (0.75, 0.25), "decel")
+    stance_at(c, 5, crouch, (-0.75, -0.2), (0.75, 0.25), "decel")
     G("RLeg", TAKE_OFF + 3, [-8, 0, 3, 0, 0, 0], "accel")  # pushed off: legs straight under him
     G("LLeg", TAKE_OFF + 3, [-4, 0, -3, 0, 0, 0], "accel")
     G("RLeg", 20, [70, 0, 10, 0, 0.35, 0], "decel")  # knees tucked
@@ -211,8 +249,8 @@ def land():
         c.key(joint, 24, reach(joint, up, heading(side * 30, -70), 0.05, twist=side * 20), "settle")
     c.key("RLeg", 0, [8, 0, 5, 0, 0, 0])
     c.key("LLeg", 0, [18, 0, -5, 0, 0, 0])
-    feet_at(c, 5, low, (-0.85, -0.45), (0.85, 0.4), "decel")
-    feet_at(c, 24, up, (-0.6, -0.25), (0.6, 0.2), "settle")
+    stance_at(c, 5, low, (-0.85, -0.45), (0.85, 0.4), "decel")
+    stance_at(c, 24, up, (-0.6, -0.25), (0.6, 0.2), "settle")
     return c
 
 
@@ -233,7 +271,7 @@ def stance():
         c.key("Root", f, root, "coil" if f == 5 else "ease")
         c.key("RArm", f, arm_w("RArm", root, [0.85, -0.55 + dh, -1.6], twist=-60), "coil" if f == 5 else "ease")
         c.key("LArm", f, arm_w("LArm", root, [-0.7, -0.35 + dh, -1.75], twist=60), "coil" if f == 5 else "ease")
-        feet_at(c, f, root, (-0.95, -0.85), (0.95, 0.75), "coil" if f == 5 else "ease")
+        stance_at(c, f, root, (-0.9, -0.8), (0.9, 0.75), "coil" if f == 5 else "ease")
     up = [-6, -6, 1, 0, -0.3, 0.05]
     c.key("Root", 54, up, "ease")
     c.key("Root", 66, [-2, -2, 0, 0, -0.1, 0], "settle")
@@ -241,8 +279,8 @@ def stance():
     c.key("LArm", 54, reach("LArm", up, heading(-20, -70), 0.05, twist=20), "ease")
     c.key("RArm", 66, [0, 0, 0, 0, 0, 0], "settle")
     c.key("LArm", 66, [0, 0, 0, 0, 0, 0], "settle")
-    feet_at(c, 54, up, (-0.7, -0.4), (0.7, 0.35), "ease")
-    feet_at(c, 66, [-2, -2, 0, 0, -0.1, 0], (-0.55, -0.1), (0.55, 0.1), "settle")
+    stance_at(c, 54, up, (-0.7, -0.4), (0.7, 0.35), "ease")
+    stance_at(c, 66, [-2, -2, 0, 0, -0.1, 0], (-0.55, -0.1), (0.55, 0.1), "settle")
     c.key("Neck", 5, [-12, 0, 0], "coil")
     c.key("Neck", 39, [-10, 0, 0], "ease")
     c.key("Neck", 66, [0, 0, 0], "settle")
@@ -310,19 +348,19 @@ def counter():
     c.key("LArm", 30, reach("LArm", [-26, 358, 0, 0, -0.78, -1.0], heading(-4, -2), 1.1, twist=-90), "stop")
     c.key("LArm", 54, reach("LArm", held, heading(-4, 0), 0.8, twist=-90), "settle")
     G = lambda leg, f, v, k="ease": c.key(leg, f, v, k)  # noqa: E731
-    feet_at(c, 0, low, (-0.95, -0.9), (0.95, 0.8))
-    feet_at(c, 4, [-23, -52, 7, 0.05, -1.08, 0.22], (-0.95, -0.9), (0.95, 0.8), "slowin")
-    feet_at(c, 7, claw, (-0.9, -0.95), (0.85, 0.55), "whip")
+    stance_at(c, 0, low, (-0.85, -0.75), (0.85, 0.75))
+    stance_at(c, 4, [-23, -52, 7, 0.05, -1.08, 0.22], (-0.85, -0.75), (0.85, 0.75), "slowin")
+    stance_at(c, 7, claw, (-0.85, -0.7), (0.85, 0.7), "whip")
     # the spinning heel kick: the right leg swings up and round, the left foot pivots
     G("RLeg", 11, [40, 0, 40, 0, 0.1, 0], "linear")
     G("LLeg", 11, [-6, 0, -6, 0, 0.2, 0], "linear")
     G("RLeg", 15, [10, 0, 95, 0, 0.15, 0], "whip")  # the leg out at hip height
     G("LLeg", 15, [-10, 0, -8, 0, 0.25, 0], "whip")
-    feet_at(c, 20, land_, (-0.9, -0.6), (0.9, 0.7), "decel")
-    feet_at(c, 23, [-20, 352, 2, 0, -0.95, -0.3], (-0.9, -0.6), (0.9, 0.7), "slowin")
-    feet_at(c, 26, palms, (-0.95, -1.9), (0.9, 0.3), "whip")
-    feet_at(c, 30, [-26, 358, 0, 0, -0.78, -1.0], (-0.95, -1.95), (0.9, 0.2), "stop")
-    feet_at(c, 54, held, (-0.95, -1.9), (0.9, 0.3), "settle")
+    stance_at(c, 20, land_, (-0.85, -0.6), (0.85, 0.7), "decel")
+    stance_at(c, 23, [-20, 352, 2, 0, -0.95, -0.3], (-0.85, -0.6), (0.85, 0.7), "slowin")
+    stance_at(c, 26, palms, (-0.8, -0.85), (0.75, 1.3), "whip")
+    stance_at(c, 30, [-26, 358, 0, 0, -0.78, -1.0], (-0.8, -0.9), (0.75, 1.4), "stop")
+    stance_at(c, 54, held, (-0.8, -0.85), (0.75, 1.25), "settle")
     return c
 
 
@@ -357,9 +395,9 @@ def dash(n):
         c.key(other, 0, reach(other, arrive, heading(side * -20, -15), 0.4, twist=side * -40))
         c.key(other, hit, reach(other, strike, heading(side * 150, -35), 0.3), "snap")
         c.key(other, length, reach(other, held, heading(side * 140, -40), 0.25), "settle")
-        feet_at(c, 0, arrive, (-0.95, -1.0), (0.95, 0.9))
-        feet_at(c, hit, strike, (-0.95, -1.3), (0.9, 0.5), "whip")
-        feet_at(c, length, held, (-0.95, -1.2), (0.9, 0.6), "settle")
+        stance_at(c, 0, arrive, (-0.85, -0.7), (0.85, 0.8))
+        stance_at(c, hit, strike, (-0.85, -0.85), (0.8, 0.9), "whip")
+        stance_at(c, length, held, (-0.85, -0.8), (0.8, 0.85), "settle")
         c.key("Neck", 0, [-12, 0, 0])
         c.key("Neck", hit, [-14, 0, side * 6], "snap")
         c.key("Neck", length, [-12, 0, side * 4], "settle")
@@ -381,11 +419,11 @@ def dash(n):
             c.key(joint, hit, reach(joint, drive, heading(s * 5, 2), 1.0, twist=s * 90), "armstrike")
             c.key(joint, hit + 4, reach(joint, over, heading(s * 5, 0), 1.15, twist=s * 90), "stop")
             c.key(joint, length, reach(joint, held, heading(s * 5, 1), 0.85, twist=s * 90), "settle")
-        feet_at(c, 0, arrive, (-0.95, -0.8), (0.95, 1.0))
-        feet_at(c, 4, loaded, (-0.95, -0.8), (0.95, 1.0), "slowin")
-        feet_at(c, hit, drive, (-0.95, -2.3), (0.85, 0.0), "whip")
-        feet_at(c, hit + 4, over, (-0.95, -2.35), (0.85, -0.1), "stop")
-        feet_at(c, length, held, (-0.95, -2.3), (0.85, 0.0), "settle")
+        stance_at(c, 0, arrive, (-0.85, -0.65), (0.85, 0.9))
+        stance_at(c, 4, loaded, (-0.85, -0.65), (0.85, 0.9), "slowin")
+        stance_at(c, hit, drive, (-0.8, -0.85), (0.75, 1.5), "whip")
+        stance_at(c, hit + 4, over, (-0.8, -0.9), (0.75, 1.6), "stop")
+        stance_at(c, length, held, (-0.8, -0.85), (0.75, 1.35), "settle")
         c.key("Neck", 0, [-12, 0, 0])
         c.key("Neck", hit, [-18, 0, 0], "snap")
         c.key("Neck", length, [-14, 0, 0], "settle")
@@ -402,6 +440,7 @@ def bake_all():
         c = make()
         baked = c.bake()
         plant(baked)
+        check_legs(c, baked)
         out.append((c, baked))
     return out
 
