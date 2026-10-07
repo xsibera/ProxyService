@@ -1,6 +1,7 @@
 """R6 one-handed sword set, authored in the style of the reference animations (ANIMSFORCLAUDE.rbxm).
 
-Clips: idle (looped), unsheathe, m1-1 (forehand), m1-2 (backhand), m1-3 (finisher), and
+Clips: idle (looped), unsheathe, m1-1 (forehand), m1-2 (backhand), m1-3 (finisher), the running and
+aerial attacks, the abilities in sword_abilities.py (heavy rising slash, spinning slash), and
 "m1 string (1,2,1,2,3)", which chains the M1s the way the game plays them, to preview the string.
 
 Weapon conventions copied from the reference weapon rigs (dagger rig, kareemandbeast, pistol rig):
@@ -823,7 +824,9 @@ def add_sword(rig):
 
 
 def build(rig_source, out_dir=HERE):
-    clips = [idle(), unsheathe()] + [m() for m in M1S] + [m() for m in EXTRA]
+    import sword_abilities  # (it builds on this module: loaded here, once this one is)
+
+    clips = [idle(), unsheathe()] + [m() for m in M1S] + [m() for m in EXTRA] + sword_abilities.clips()
     sequences, by_name, data = [], {}, {}
     for c in clips:
         c, baked = _baked(c)

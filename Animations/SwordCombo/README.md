@@ -1,6 +1,6 @@
 # R6 one-handed sword set
 
-An idle, an unsheathe and a 1, 2, 1, 2, finisher M1 string for a one-handed sword. They follow the style of the weapon animations in `ANIMSFORCLAUDE.rbxm`: the dagger rig, the kareemandbeast blade and the pistol rig.
+An idle, an unsheathe, a 1, 2, 1, 2, finisher M1 string, running and aerial attacks, and two abilities (a heavy rising slash and a spinning slash) for a one-handed sword. They follow the style of the weapon animations in `ANIMSFORCLAUDE.rbxm`: the dagger rig, the kareemandbeast blade and the pistol rig.
 
 | Clip | What it is | Length | Markers |
 |---|---|---|---|
@@ -11,19 +11,21 @@ An idle, an unsheathe and a 1, 2, 1, 2, finisher M1 string for a one-handed swor
 | `m1-3` | Finisher: a lunging stab. It draws the sword back by the right side with the point toward the target and the off hand aiming, then drives a dead-straight thrust and holds the lunge. | 1.10s | `Hit` at 0.53s |
 | `running attack` | Off a sprint with the blade trailing low behind: the left foot plants and the body winds, then one flat sweep goes round the right side and across the front at waist height into a deep lunge. **Keys the legs.** | 0.90s | `Hit` at 0.50s |
 | `aerial attack` | In the air: rises with the knees tucked and the sword cocked behind the head, then cleaves over the top and down through the target as the body folds forward and the legs drop to land. **Keys the legs.** | 0.93s | `Hit` at 0.52s |
+| `heavy rising slash` | Ability. A long, low wind-up: he sinks into a lunge wound hard to the left, the sword drawn back past the left hip with its point almost scraping the floor and the off hand out at the target. Then one heavy cut rises from his bottom left to his top right as he steps through and comes up onto his toes. The sword finishes high over the right shoulder before he comes back to the stance. **Keys the legs.** | 1.40s | `Hit` at 0.62s |
+| `spinning slash` | Ability. Wound right with the sword drawn back flat behind him, then a hop and a spin and a half to the left. The blade is held flat at arm's length and whips all the way round him, past the front twice, with the legs tucked. He lands low and wide and comes back up into the stance. **Keys the legs.** | 1.20s | `Hit` at 0.45s and 0.62s (each pass across the front) |
 | `m1 string (1,2,1,2,3)` | m1-1, m1-2, m1-1, m1-2, m1-3 in one clip, to preview the whole string. | 3.77s | `Hit` on all five impacts |
 
 Every clip is baked at 60 fps with Linear easing and Priority **Action**, the same as the references.
 
 ## The rig
 
-`SwordCombo.rbxm` contains **Sword Rig**: the reference "normal player" R6 rig, with all six clips in `AnimSaves`.
+`SwordCombo.rbxm` contains **Sword Rig**: the reference "normal player" R6 rig, with every clip in `AnimSaves`.
 - **Sword:** a model whose `Handle` part hangs off a Motor6D called **`Handle`** inside the Right Arm. The reference weapon rigs are built the same way. The Motor6D's C0 is the fist, `(0, -0.95, 0)`, with no rotation, so the blade points straight out of the fist.
 - **Sword parts:** the blade, fuller, crossguard, pommel and a two-wedge point are welded to `Handle`. It's about 4.25 studs from the grip to the tip.
 - **Swing attachments:** `Handle` holds two attachments, **`SwingBase`** (where the blade leaves the guard) and **`SwingTip`** (the point). The swing trails in `VFX/CombatVFX` (`CombatVFX.Swing("SwordSwing", …)`) run between them. If you use your own sword, give its blade the same two attachments.
 - **Scabbard:** welded to the Torso. The hilt sits at the front of the left hip and the scabbard runs back and down along the outside of the left thigh.
 - **Physics:** no part collides and every part is massless.
-- **Legs:** every clip keys the legs at Weight 0, so your walk (or whatever else is playing) drives them. The exceptions are the running and aerial attacks, which drive the legs themselves.
+- **Legs:** every clip keys the legs at Weight 0, so your walk (or whatever else is playing) drives them. The exceptions are the running and aerial attacks and the two abilities, which drive the legs themselves.
 
 To use it on your own character, copy the `Sword` model, the `Handle` Motor6D and the `Scabbard` model over. Then set the Motor6D's `Part0` to your character's Right Arm and the scabbard welds' `Part0` to its Torso.
 
@@ -38,6 +40,21 @@ To use it on your own character, copy the `Sword` model, the `Handle` Motor6D an
 ## Flying the sword in world space
 
 The running and aerial attacks fly the sword along curves in world space: one for the fist around the body, and one for the blade with its edge turned into the cut. The arm and the wrist (`Handle`) are solved for every frame from those curves, so the sweep stays a clean arc whatever the torso and legs are doing. The speed along each curve follows the reference whip.
+
+## The abilities
+
+Both are one-handed and built in `sword_abilities.py`:
+- **The sword:** it's flown in world space like the running and aerial attacks. The fist follows a curve and the wrist keeps the blade on its own curve, with the edge leading the cut.
+  - **Rising slash:** the blade turns through a tilted plane, from pointing back down past the left hip, through straight at the target, to up over the right shoulder. The cut follows the reference whip.
+  - **Spinning slash:** the blade trails the arm early in the spin and leads it at the end, as the wrist whips it through.
+- **The legs:** planted and solved on every frame by the shared leg solver (`Abilities/Shared/stance.py`), the same one the ability kits use. The build checks every frame: the feet are at hip width and never cross, a support leg stands upright, and a stepping leg is aimed from its hip.
+  - **Rising slash:** the left foot steps back into the lunge, then drives through into a step forward with the cut.
+  - **Spinning slash:** the legs tuck under him and turn with him through the hop.
+- **Spin hits:** the spinning slash's two `Hit` markers fall on the frames where the blade crosses the front. Deal its damage all round him on each one.
+
+![heavy rising slash](previews/heavy_rising_slash.gif)
+
+![spinning slash](previews/spinning_slash.gif)
 
 ## The stab and the wrist
 
@@ -101,7 +118,8 @@ The idle is built directly from smooth breathing waves, so it isn't smoothed.
 - `previews/m1_string.gif`: the string, in real time.
 - `previews/unsheathe_idle.gif`: the unsheathe, then one loop of the idle.
 - `previews/running_aerial_attacks.gif` / `running_aerial_key_poses.png`: the running and aerial attacks.
-- `generate_sword.py`: the source for all of the above.
+- `previews/heavy_rising_slash.gif` / `spinning_slash.gif`: the two abilities, with the sword's swing trail.
+- `generate_sword.py`: the source for all of the above (the abilities are in `sword_abilities.py`).
 - `sword_data.json`: the baked channels.
 
 ## Changing it
