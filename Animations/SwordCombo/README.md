@@ -81,7 +81,7 @@ These clips get the same smoothing pass as the fist combo (see `../animkit.py`).
 |---|---|
 | `unsheathe` | 2.18x |
 | `m1-1` | 2.02x |
-| `m1-2` | 2.13x |
+| `m1-2` | 2.09x |
 | `m1-3` | 2.04x |
 
 The idle is built directly from smooth breathing waves, so it isn't smoothed.

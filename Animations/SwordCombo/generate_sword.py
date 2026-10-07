@@ -271,10 +271,11 @@ def m1_2():
     L(5, [20, -36, -30, 0.1, 0.04, -0.24])
     L(14, [-18, -30, -46, 0.2, -0.1, 0.42], "coil")  # pulled back out of the sword arm's way
     L(22, [-22, -34, -50, 0.2, -0.12, 0.46], "slowin")
-    L(27, [62, -40, -28, 0.24, 0.16, -0.5], "snap")  # thrown forward for balance on the whip
-    L(31, [70, -44, -30, 0.26, 0.2, -0.58], "stop")
-    L(45, [52, -32, -26, 0.22, 0.14, -0.46], "settle")
-    L(50, [52, -34, -26, 0.22, 0.14, -0.47], "drift")
+    # flung out and back to the left on the whip, a counterweight well away from the sword hand
+    L(27, [-24, -16, -64, 0.08, 0.04, 0.22], "snap")
+    L(31, [-32, -20, -74, 0.1, 0.06, 0.28], "stop")
+    L(45, [-24, -16, -66, 0.08, 0.04, 0.24], "settle")
+    L(50, [-25, -17, -67, 0.08, 0.04, 0.25], "drift")
     return c
 
 
