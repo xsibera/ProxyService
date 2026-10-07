@@ -267,12 +267,21 @@ instanceMT.__index = function(self, key)
 		return function(_, state, enabled)
 			table.insert(H.stateEnabled, { state = state.Name, enabled = enabled })
 		end
+	elseif class == "AnimationTrack" and key == "AdjustSpeed" then
+		return function(track, speed)
+			rawget(track, "__props").Speed = speed or 1
+		end
 	elseif class == "AnimationTrack" and (key == "Play" or key == "Stop") then
-		return function(track, fade)
+		return function(track, fade, weight, speed)
 			local props = rawget(track, "__props")
 			if key == "Play" then
 				props.IsPlaying = true
-				table.insert(H.played, { name = props.__kfs, fade = fade, model = props.__model })
+				props.WeightTarget = weight or 1
+				props.Speed = speed or 1
+				table.insert(
+					H.played,
+					{ name = props.__kfs, fade = fade, weight = weight or 1, speed = speed or 1, model = props.__model }
+				)
 			elseif props.IsPlaying then
 				props.IsPlaying = false
 				props.Stopped:Fire()

@@ -119,6 +119,12 @@ Loadout.Abilities = {
 		Name = "Axe Kick",
 		Hint = "The leg straight up and the heel dropped: can't be parried, and crushes a guard.",
 	},
+	Teep = {
+		Kit = "Brawler",
+		Character = "Brawler",
+		Name = "Teep",
+		Hint = "A heavy push kick straight into their middle: breaks a block outright and shoves them away.",
+	},
 	GroundSlam = {
 		Kit = "Brawler",
 		Character = "Brawler",
@@ -162,6 +168,7 @@ Loadout.Order = {
 	"Uppercut",
 	"Roundhouse",
 	"AxeKick",
+	"Teep",
 	"GroundSlam",
 	"GrabThrow",
 	"Suplex",
@@ -174,8 +181,9 @@ Loadout.Presets = {
 	Leorio = { "WarpPunch", "RemoteJab", "WarpBarrage", "PortalBurst" },
 	Striker = { "Haymaker", "Uppercut", "Roundhouse", "AxeKick" },
 	Grappler = { "GrabThrow", "Suplex", "Chokeslam", "GroundSlam" },
+	Kickboxer = { "Teep", "Roundhouse", "AxeKick", "Haymaker" },
 }
-Loadout.PresetOrder = { "Gon", "Killua", "Leorio", "Striker", "Grappler" }
+Loadout.PresetOrder = { "Gon", "Killua", "Leorio", "Striker", "Grappler", "Kickboxer" }
 Loadout.Default = "Killua"
 
 --------------------------------------------------------------------------- reading and writing

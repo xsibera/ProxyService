@@ -2,6 +2,7 @@
 
 Basic fighting moves as a Roblox kit, with animations, effects and scripts: punches, kicks, a ground slam, and grabs with the throws and slams that follow them. It's built for the same **parry-style fight** as the other kits, so every move has an answer:
 - **strikes** can be blocked or parried;
+- the **teep** breaks a block outright, so parry it or get out of the way;
 - the **axe kick** and **slam** come down from above (block them facing any way; you can't parry them);
 - **grabs beat blocks**. You beat a grab by hitting first, rolling through it, or not being there.
 
@@ -11,12 +12,13 @@ Basic fighting moves as a Roblox kit, with animations, effects and scripts: punc
 | **Uppercut** | Dropped low and wound right, then up off the back foot, the fist driven up through the chin and on over his head. **Launches** them. | 10 | Block or parry. |
 | **Roundhouse** | A spinning right roundhouse at head height. The right knee chambers, he pivots on the planted left foot, the torso leans away, and the leg whips round flat through the target. Wide: it sweeps them off to his left. | 12 | Block or parry. |
 | **Axe Kick** | The right leg swung straight up past his face, a hang at the top, then the heel chopped down into a deep lunge. Takes 70 of a guard's 100. | 15 | **Never parryable.** Block it facing any way (that costs most of your guard), or step out of reach. |
+| **Teep** | A heavy push kick off the back leg. A long wind-up: he leans far back with the right side turned away and the arm cocked, the knee pulled up to the chest and held. Then the hips whip round and drive through, and the foot is shoved straight out into their middle as he throws his weight back behind it and slams the rear arm down. The foot stamps down after. A bigger impact and camera shake than the other strikes, and it shoves them straight back, hard. | 13 | **Breaks a block outright** (a guard-break stun). Parry it instead, or step out of reach. |
 | **Ground Slam** | A crouch, a 2.6-stud hop with both fists locked overhead and the knees tucked, then both fists hammered into the floor as he lands. Launches everyone within 11 studs. | 12 | From above: block facing any way, never parry. |
 | **Grab & Throw** | A lunging two-handed grab. Caught by the collar, they're hauled up onto their toes. He winds, steps through, swings them round and hurls them away. | 9 | Grabs beat blocks. Hit him in the wind-up, roll through it, or don't be in front of him. |
 | **Suplex** | Grabbed round the waist. He drops under them, stands up lifting them off their feet, arches back into a bridge and spikes them head-first into the floor behind him. They flop over flat on their back, then **get back up**. | 18 | As above. |
 | **Chokeslam** | Caught by the throat and lifted clean off the floor one-handed, held up high while they kick. Then he slams them flat on their back in front of him and follows them down into a crouch. They get back up. | 20 | As above. |
 
-**In the ability place:** press **M** and pick the **Striker** preset (Haymaker, Uppercut, Roundhouse, Axe Kick) or the **Grappler** preset (Grab & Throw, Suplex, Chokeslam, Ground Slam), or mix any four. Each move turns you to where the camera looks.
+**In the ability place:** press **M** and pick the **Striker** preset (Haymaker, Uppercut, Roundhouse, Axe Kick) or the **Grappler** preset (Grab & Throw, Suplex, Chokeslam, Ground Slam) or the **Kickboxer** preset (Teep, Roundhouse, Axe Kick, Haymaker), or mix any four. Each move turns you to where the camera looks.
 
 **Without the Loadout menu**, the keys are:
 
@@ -26,12 +28,15 @@ Basic fighting moves as a Roblox kit, with animations, effects and scripts: punc
 | X | Uppercut |
 | C | Roundhouse |
 | V | Axe Kick |
+| E | Teep |
 | B | Ground Slam |
 | T | Grab & Throw |
 | G | Suplex |
 | H | Chokeslam |
 
 ![punches and kicks](previews/punches_and_kicks.png)
+
+![teep](previews/teep.gif)
 
 ## The grabs
 
@@ -57,7 +62,7 @@ How the game moves them:
 They're in the style of your reference animations (the fist M1s and the abilities rig), built the same way as Leorio's:
 - **The rhythm:** a counter-move, the coil, a loaded slow-in, a 3–5 frame whip, then overshoot, settle and drift.
 - **The legs:** done the way your ice downslam does them. The feet are planted and solved on every frame, so they never slide during a turn. The support leg stands upright, the back leg stretches out long on the big hits, and the head stays on the target.
-- **The kicks** were checked against your leg sweep and leg axe. A kicking leg is aimed out from its hip at full length (at head height for the roundhouse, straight up for the axe kick), and it's allowed to cross the standing leg in the air. Planted feet are still never allowed to cross.
+- **The kicks** were checked against your leg sweep and leg axe. A kicking leg is aimed out from its hip at full length (at head height for the roundhouse, straight up for the axe kick, straight ahead at stomach height for the teep), and it's allowed to cross the standing leg in the air. Planted feet are still never allowed to cross.
 - **The build checks every frame:** planted feet stay 0.9 studs apart side to side, one leg stays within 25° of upright whenever both feet are down, and no leg slides more than 1.6 studs off its hip.
 
 | Clip | Length | Hit |
@@ -66,6 +71,7 @@ They're in the style of your reference animations (the fist M1s and the abilitie
 | `Brawler Uppercut` | 0.8s | 16/60 |
 | `Brawler Roundhouse` | 0.85s | 17/60 |
 | `Brawler Axe Kick` | 1.0s | 30/60 |
+| `Brawler Teep` | 1.23s | 31/60 |
 | `Brawler Ground Slam` | 1.2s | 32/60 |
 | `Brawler Grab` | 0.7s | 10/60 (the hands close; a whiff plays on as a stumble and recovery) |
 | `Brawler Suplex` / `Held Suplex` | 1.2s | 36/60 (let go at 42) |
@@ -168,13 +174,13 @@ end)
 `generate_brawler.py` builds `build/Brawler.rbxmx`, `build/BrawlerRig.rbxmx` and the labelled kit `Brawler.rbxmx`, and writes `tests/grab_paths.luau`. `../Jajanken/build.sh` builds it with everything else.
 
 Tests (`luaurun`, from this folder):
-- `tests/server.luau`, 72 checks:
+- `tests/server.luau`, 78 checks:
   - every strike's timing, damage, stun, knockback and walk speed;
-  - blocks and parries, the axe kick from above, and the slam all round;
+  - blocks and parries, the teep breaking a block (and still parryable), the axe kick from above, and the slam all round;
   - the grabs: beating a block, holding both still, the start of the path, the slam on the path's clock, the knockdown lasting through the get-up, letting go where the path ends (upright), and the grabber freed at the end of his clip;
   - the throw's hurl along the swing;
   - whiffs, rolling through a grab, being cut short, the victim dying, one grab at a time, the loadout and bad input.
-- `tests/client.luau`, 55 checks:
+- `tests/client.luau`, 57 checks:
   - turning to the camera, the animations, the step in, and the fist and kick trails;
   - the slam and the hit effects, and the camera shake;
   - your own suplex: both sides played, the victim carried along the path frame by frame, the body slam, letting go and the get-up;

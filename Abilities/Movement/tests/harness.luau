@@ -14,7 +14,7 @@ H.Config = mock.module(movement, "Config", "src/Config.luau")
 H.sounds(movement, { "Roll" })
 H.remote = mock.newInstance("RemoteEvent", "Remote")
 H.remote.Parent = movement
-H.animations(movement, { "Sprint", "Roll" })
+H.animations(movement, { "Sprint", "Roll", "Jump", "Fall", "Land" })
 H.VFXModule = mock.module(RS, "CombatVFX", "../Shared/tests/FakeCombatVFX.luau")
 
 local combat = mock.newInstance("Folder", "Combat")

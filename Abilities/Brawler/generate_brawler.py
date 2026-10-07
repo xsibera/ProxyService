@@ -33,6 +33,7 @@ ANIMATIONS = {  # the Animation the client loads -> the KeyframeSequence inside 
     "Uppercut": "Brawler Uppercut",
     "Roundhouse": "Brawler Roundhouse",
     "AxeKick": "Brawler Axe Kick",
+    "Teep": "Brawler Teep",
     "GroundSlam": "Brawler Ground Slam",
     "Grab": "Brawler Grab",
     "Suplex": "Brawler Suplex",
@@ -51,7 +52,7 @@ SOUNDS = {  # new name: (the game's sound, playback speed, volume) - swap in you
     "Grab": ("PaperHit", 0.9, 0.7),
 }
 STRIKES = {"Haymaker": "Brawler Haymaker", "Uppercut": "Brawler Uppercut", "Roundhouse": "Brawler Roundhouse",
-           "AxeKick": "Brawler Axe Kick", "GroundSlam": "Brawler Ground Slam"}
+           "AxeKick": "Brawler Axe Kick", "Teep": "Brawler Teep", "GroundSlam": "Brawler Ground Slam"}
 KEY = {v: k for k, v in ANIMATIONS.items()}
 
 
@@ -149,8 +150,8 @@ README = """--[[
 	7. Optional (Workspace): Brawler Animation Rig - open it in the Animation Editor to publish the
 		animations, then paste their ids into Brawler.Config.Animations.
 
-	Play (without the Loadout menu): Z Haymaker, X Uppercut, C Roundhouse, V Axe Kick, B Ground Slam,
-	T Grab & Throw, G Suplex, H Chokeslam. With it, pick them in the menu (M).
+	Play (without the Loadout menu): Z Haymaker, X Uppercut, C Roundhouse, V Axe Kick, E Teep,
+	B Ground Slam, T Grab & Throw, G Suplex, H Chokeslam. With it, pick them in the menu (M).
 	Everything is tuned in Brawler > Config. The game must use R6 avatars.
 	Unpublished animations only play in Studio. Publish them before a live game.
 ]]

@@ -5,6 +5,7 @@
 
 	The rules of the fight (through ReplicatedStorage.Combat):
 	  Strikes      Haymaker, Uppercut, Roundhouse: block or parry them, facing the striker.
+	  Teep         a heavy push kick that breaks a block outright: parry it, or get out of the way.
 	  Axe Kick     comes down from above: blockable from any side, never parryable, and it takes most
 	               of a guard (GuardDamage 70 of 100).
 	  Ground Slam  from above too, all round him.
@@ -23,6 +24,7 @@ Config.Keys = {
 	Uppercut = Enum.KeyCode.X,
 	Roundhouse = Enum.KeyCode.C,
 	AxeKick = Enum.KeyCode.V,
+	Teep = Enum.KeyCode.E,
 	GroundSlam = Enum.KeyCode.B,
 	GrabThrow = Enum.KeyCode.T,
 	Suplex = Enum.KeyCode.G,
@@ -35,12 +37,23 @@ Config.GamepadButtons = {
 	AxeKick = Enum.KeyCode.ButtonR1,
 }
 Config.MobileButtons = true
-Config.Abilities = { "Haymaker", "Uppercut", "Roundhouse", "AxeKick", "GroundSlam", "GrabThrow", "Suplex", "Chokeslam" }
+Config.Abilities = {
+	"Haymaker",
+	"Uppercut",
+	"Roundhouse",
+	"AxeKick",
+	"Teep",
+	"GroundSlam",
+	"GrabThrow",
+	"Suplex",
+	"Chokeslam",
+}
 Config.DisplayNames = {
 	Haymaker = "Haymaker",
 	Uppercut = "Uppercut",
 	Roundhouse = "Roundhouse",
 	AxeKick = "Axe Kick",
+	Teep = "Teep",
 	GroundSlam = "Ground Slam",
 	GrabThrow = "Grab & Throw",
 	Suplex = "Suplex",
@@ -128,6 +141,26 @@ Config.AxeKick = {
 	Cooldown = 8,
 }
 
+Config.Teep = {
+	Animation = "Teep",
+	Swing = "KickSwing",
+	HitDelay = 31 / 60, -- a long, heavy wind-up: the tell
+	Damage = 13,
+	Stun = 1.1,
+	Knockback = 85, -- shoved straight back, hard
+	Lift = 10,
+	GuardDamage = 100,
+	GuardBreak = true, -- breaks a block outright (parry it instead)
+	Box = Vector3.new(4.5, 5, 7.5),
+	Ahead = 0,
+	Lunge = { At = 25 / 60, Distance = 3.5, Time = 0.12 },
+	Effect = "HeavyHit",
+	EffectScale = 1.35, -- a bigger impact than the other strikes'
+	Shake = 1.6, -- and a harder camera shake
+	Recovery = 1.1,
+	Cooldown = 8,
+}
+
 Config.GroundSlam = {
 	Animation = "GroundSlam",
 	HitDelay = 32 / 60, -- both fists into the floor as he lands
@@ -189,6 +222,7 @@ Config.Animations = {
 	Uppercut = "",
 	Roundhouse = "",
 	AxeKick = "",
+	Teep = "",
 	GroundSlam = "",
 	Grab = "",
 	Suplex = "",

@@ -1,12 +1,11 @@
-"""Builds the Movement kit: sprinting and rolling.
+"""Builds the Movement kit: sprinting, rolling, jumping and landing.
 
   python3 generate_movement.py path/to/ANIMSFORCLAUDE.rbxmx path/to/nen.rbxmx
 
-The sprint is the reference file's own run ("normal player" > "new run"), the roll is anims.py's,
-the effects are the combat effects pack (VFX/CombatVFX) and the roll's whoosh is the game's own
-sound. Writes:
+The animations are anims.py's (the run plays as Sprint), the effects are the combat effects pack
+(VFX/CombatVFX) and the roll's whoosh is the game's own sound. Writes:
   build/Movement.rbxmx     the ReplicatedStorage folder: Config, Animations, Sounds, Remote
-  build/MovementRig.rbxmx  the animation rig (AnimSaves with Sprint and Roll), for publishing
+  build/MovementRig.rbxmx  the animation rig (AnimSaves with every animation), for publishing
   Movement.rbxmx           the labelled kit: folders named for where each piece goes
 """
 
@@ -23,19 +22,19 @@ from animkit import reference_rig  # noqa: E402
 SRC = os.path.join(HERE, "src")
 anims = B.load("movement_anims", os.path.join(HERE, "anims.py"))
 SOUNDS = {"Roll": ("Slash", 0.75, 0.45)}  # new name: (the game's sound, playback speed, volume)
+# Animation name in the kit (what MovementClient loads): the clip it plays
+ANIMATIONS = {"Sprint": "Run", "Roll": "Roll", "Jump": "Jump", "Fall": "Fall", "Land": "Land"}
 
 
-def sequences(rig_source):
-    """{name: KeyframeSequence}: the reference run as Sprint, and the roll."""
-    game = B.sequences(anims.bake_all())
-    game["Sprint"] = B.reference_animation(rig_source, "normal player", "new run", "Sprint")
-    return game
+def sequences(rig_source=None):
+    """{clip name: KeyframeSequence} for every clip in anims.py."""
+    return B.sequences(anims.bake_all())
 
 
 def movement_folder(nen_rbxmx, game):
     return B.folder("Movement", [
         B.module("Config", os.path.join(SRC, "Config.luau")),
-        B.animations_folder({"Sprint": "Sprint", "Roll": "Roll"}, game),
+        B.animations_folder(ANIMATIONS, game),
         B.sounds_folder(nen_rbxmx, SOUNDS),
         B.item("RemoteEvent", "Remote"),
     ])
@@ -43,24 +42,24 @@ def movement_folder(nen_rbxmx, game):
 
 def animation_rig(rig_source, game):
     rig, saves = reference_rig(rig_source, "Movement Animation Rig")
-    for name in ("Sprint", "Roll"):
+    for name in ANIMATIONS.values():
         saves.append(copy.deepcopy(game[name]))
     return B.reref(rig)
 
 
 README = """--[[
-	MOVEMENT: sprinting and rolling. Where everything goes:
+	MOVEMENT: sprinting, rolling, jumping and landing. Where everything goes:
 
 	1. The "Movement" folder               -> ReplicatedStorage
 	2. MovementServer (Script)             -> ServerScriptService
 	3. MovementClient (LocalScript)        -> StarterPlayer > StarterPlayerScripts
 	4. CombatVFX (the combat effects pack)   -> ReplicatedStorage (skip it if you already have it)
 	5. Needed - the Combat folder -> ReplicatedStorage, CombatServer -> ServerScriptService,
-	   CombatClient -> StarterPlayerScripts (the roll's dodge goes through it)
-	6. Optional (Workspace): Movement Animation Rig - publish Sprint and Roll from it, then paste the
-	   ids into Movement.Config.Animations.
+		CombatClient -> StarterPlayerScripts (the roll's dodge goes through it)
+	6. Optional (Workspace): Movement Animation Rig - publish Run (as Sprint), Roll, Jump, Fall and
+		Land from it, then paste the ids into Movement.Config.Animations.
 
-	Play: hold Left Ctrl (or double-tap W and hold) to sprint; Q to roll.
+	Play: hold Left Ctrl (or double-tap W and hold) to sprint; Q to roll; Space to jump.
 	The game must use R6 avatars. Unpublished animations only play in Studio.
 ]]
 return nil
@@ -69,7 +68,7 @@ return nil
 
 def labelled_kit(movement, rig, combat):
     cs = os.path.join(ABILITIES, "Combat", "src")
-    kit = B.folder("Movement (sprint and roll)", [
+    kit = B.folder("Movement (sprint, roll, jump)", [
         B.source_module("READ ME", README),
         B.folder("1. Put the Movement folder in ReplicatedStorage", [copy.deepcopy(movement)]),
         B.folder("2. Put MovementServer in ServerScriptService", [

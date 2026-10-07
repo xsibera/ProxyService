@@ -22,6 +22,7 @@ H.animations(brawler, {
 	"Uppercut",
 	"Roundhouse",
 	"AxeKick",
+	"Teep",
 	"GroundSlam",
 	"Grab",
 	"Suplex",

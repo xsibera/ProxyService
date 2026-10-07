@@ -7,7 +7,7 @@ A hotbar and an ability menu for a game with more than one ability kit. Each pla
   - Pick an ability and then a key, or a key and then an ability.
   - Putting an ability that's already equipped on another key swaps the two keys.
   - **Right-click** a key to empty it.
-  - **Presets** fill all four at once: **Gon** (Rock, Paper, Scissors), **Killua** (Lightning Palm, Thunderbolt, Whirlwind, Lightning Dash) **Leorio** (Warp Punch, Remote Jab, Warp Barrage, Portal Burst), and for the Brawler **Striker** (Haymaker, Uppercut, Roundhouse, Axe Kick) and **Grappler** (Grab & Throw, Suplex, Chokeslam, Ground Slam).
+  - **Presets** fill all four at once: **Gon** (Rock, Paper, Scissors), **Killua** (Lightning Palm, Thunderbolt, Whirlwind, Lightning Dash) **Leorio** (Warp Punch, Remote Jab, Warp Barrage, Portal Burst), and for the Brawler **Striker** (Haymaker, Uppercut, Roundhouse, Axe Kick), **Grappler** (Grab & Throw, Suplex, Chokeslam, Ground Slam) and **Kickboxer** (Teep, Roundhouse, Axe Kick, Haymaker).
   - The menu has a column of cards per character, and grows wider as kits are added. A column with more cards than fit (the Brawler's eight) scrolls.
 - New players start with the **Killua** preset (`Loadout.Default`).
 - The server keeps each player's choice in their `Loadout` attribute. It refuses changes mid-attack or while stunned, and the kits refuse to cast anything that isn't equipped.

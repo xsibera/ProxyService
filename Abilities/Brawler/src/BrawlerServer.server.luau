@@ -429,6 +429,7 @@ local function strike(player: Player, s: State, ability: string, aim: any)
 				Stun = settings.Stun,
 				StunKind = settings.StunKind or "Hit",
 				GuardDamage = settings.GuardDamage,
+				GuardBreak = settings.GuardBreak,
 				FromAbove = settings.FromAbove,
 				Parryable = if settings.FromAbove then false else nil,
 				From = root.Position,

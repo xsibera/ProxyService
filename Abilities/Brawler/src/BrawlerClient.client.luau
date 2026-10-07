@@ -548,12 +548,16 @@ local function hitEffects(
 		effect = "M1Hit"
 	end
 	local dir = if typeof(push) == "Vector3" and push.Magnitude > 1e-3 then push else Vector3.zAxis
-	VFX.Play(effect, CFrame.lookAt(position, position + dir), options({ victim, caster.Character :: Instance }))
+	local look = options({ victim, caster.Character :: Instance })
+	local big = if outcome == "Hit" then settings.EffectScale or 1 else 1
+	look.Scale = big
+	VFX.Play(effect, CFrame.lookAt(position, position + dir), look)
 	sound(if effect == "HeavyHit" then "Heavy" else "Punch", position, if outcome == "Hit" then 1 else 0.5)
+	local shakes = (if outcome == "Hit" then settings.Shake else nil) or 1
 	if victim == player.Character then
-		shake(if effect == "HeavyHit" then 0.5 else 0.25)
+		shake((if effect == "HeavyHit" then 0.5 else 0.25) * shakes)
 	elseif caster == player then
-		shake(if effect == "HeavyHit" then 0.3 else 0.14)
+		shake((if effect == "HeavyHit" then 0.3 else 0.14) * shakes)
 	end
 end
 
@@ -608,7 +612,7 @@ end
 local function onCharacter(character: Model)
 	busyUntil = 0
 	trackCache[character] = nil
-	for _, name in { "Haymaker", "Uppercut", "Roundhouse", "AxeKick", "GroundSlam", "Grab" } do
+	for _, name in { "Haymaker", "Uppercut", "Roundhouse", "AxeKick", "Teep", "GroundSlam", "Grab" } do
 		task.spawn(track, character, name) -- loaded up front, so the first press isn't late
 	end
 end

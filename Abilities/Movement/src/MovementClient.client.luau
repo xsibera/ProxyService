@@ -1,12 +1,16 @@
 --!strict
 --[[
-	MovementClient (StarterPlayer > StarterPlayerScripts): sprinting and rolling for this player,
-	and the dust everyone kicks up.
+	MovementClient (StarterPlayer > StarterPlayerScripts): sprinting, rolling, jumping and landing
+	for this player, and the dust everyone kicks up.
 
 	Sprinting raises this player's walk speed from Config.WalkSpeed to Config.SprintSpeed, and only
 	from exactly that: whatever else sets the walk speed (swinging, charging, blocking, a stun) wins
-	while it lasts, and the sprint comes back when it ends if the key is still held. Rolls move the
-	character here (the client owns its physics) and ask the server for the untouchable part.
+	while it lasts, and the sprint comes back when it ends if the key is still held. The run plays at
+	the speed the character really goes, so its feet stay planted. Rolls move the character here (the
+	client owns its physics) and ask the server for the untouchable part. Jumping, falling and
+	landing follow the Humanoid's state: the jump as it leaves the floor, the fall pose once the jump
+	is done (or a moment after walking off an edge), and a landing as hard as the fall was.
+	Animations played here replicate, so everyone sees them.
 ]]
 
 local ContextActionService = game:GetService("ContextActionService")
@@ -77,16 +81,19 @@ local function animation(name: string): Animation?
 		return a
 	elseif not warned then
 		warned = true
-		warn("Movement: publish the Sprint and Roll animations and put their ids in Movement.Config.Animations")
+		warn("Movement: publish the movement animations and put their ids in Movement.Config.Animations")
 	end
 	return nil
 end
 
 local sprintTrack: AnimationTrack? = nil
 local rollTrack: AnimationTrack? = nil
+local jumpTrack: AnimationTrack? = nil
+local fallTrack: AnimationTrack? = nil
+local landTrack: AnimationTrack? = nil
 
 local function loadTracks(character: Model)
-	sprintTrack, rollTrack = nil, nil
+	sprintTrack, rollTrack, jumpTrack, fallTrack, landTrack = nil, nil, nil, nil, nil
 	local humanoid = character:WaitForChild("Humanoid", 10)
 	local animator = humanoid and humanoid:WaitForChild("Animator", 10)
 	if not (animator and animator:IsA("Animator")) then
@@ -109,6 +116,10 @@ local function loadTracks(character: Model)
 	end
 	sprintTrack = load("Sprint", Enum.AnimationPriority.Movement, true)
 	rollTrack = load("Roll", Enum.AnimationPriority.Action3, false)
+	-- over the default Animate script's, under attacks (whose legs an M1 leaves to these mid-air)
+	jumpTrack = load("Jump", Enum.AnimationPriority.Movement, false)
+	fallTrack = load("Fall", Enum.AnimationPriority.Movement, true)
+	landTrack = load("Land", Enum.AnimationPriority.Movement, false)
 end
 
 local function sound(name: string, at: Vector3)
@@ -142,9 +153,10 @@ local function setFOV(fov: number)
 end
 
 local sprinting = false
+local fast = false -- at sprint speed (on the floor or not: the camera stays wide through a jump)
 local function updateSprint()
-	local character, _, humanoid = parts(player)
-	if not (character and humanoid) then
+	local character, root, humanoid = parts(player)
+	if not (character and root and humanoid) then
 		return
 	end
 	local moving = humanoid.MoveDirection.Magnitude > 0.1
@@ -158,7 +170,8 @@ local function updateSprint()
 	elseif not want and humanoid.WalkSpeed == Config.SprintSpeed then
 		humanoid.WalkSpeed = Config.WalkSpeed
 	end
-	local now = humanoid.WalkSpeed == Config.SprintSpeed and moving and onFloor(humanoid)
+	local nowFast = humanoid.WalkSpeed == Config.SprintSpeed and moving
+	local now = nowFast and onFloor(humanoid)
 	if now ~= sprinting then
 		sprinting = now
 		if sprintTrack then
@@ -168,7 +181,16 @@ local function updateSprint()
 				sprintTrack:Stop(0.2)
 			end
 		end
-		setFOV(if now then Config.SprintFOV else 70)
+	end
+	if nowFast ~= fast then
+		fast = nowFast
+		setFOV(if nowFast then Config.SprintFOV else 70)
+	end
+	if sprinting and sprintTrack then
+		-- the run's feet are planted for RunAnimationSpeed: play it at the speed really gone
+		local v = root.AssemblyLinearVelocity
+		local speed = Vector3.new(v.X, 0, v.Z).Magnitude
+		sprintTrack:AdjustSpeed(math.clamp(speed / Config.RunAnimationSpeed, 0.6, 1.4))
 	end
 end
 
@@ -242,6 +264,101 @@ local function tryRoll()
 	Remote:FireServer("Roll", dir)
 end
 
+--------------------------------------------------------------------------- jumping, falling, landing
+
+local AIR = Config.Air
+local airborne = false
+local fallingSpeed = 0 -- studs/s: the fastest this time off the floor
+local fallAt: number? = nil -- when the fall pose takes over from the jump
+
+local function stopAir(fade: number)
+	for _, track in { jumpTrack, fallTrack } do
+		if track and track.IsPlaying then
+			track:Stop(fade)
+		end
+	end
+end
+
+local function leaveFloor(jumped: boolean)
+	airborne = true
+	fallingSpeed = 0
+	fallAt = os.clock() + AIR.FallDelay
+	if jumped then
+		if landTrack and landTrack.IsPlaying then
+			landTrack:Stop(0.05)
+		end
+		if fallTrack and fallTrack.IsPlaying then
+			fallTrack:Stop(0.1)
+		end
+		if jumpTrack then
+			jumpTrack:Play(0.06)
+			fallAt = os.clock() + jumpTrack.Length - 0.04 -- the jump ends in the fall pose
+		end
+	end
+end
+
+local function land(character: Model, root: BasePart, humanoid: Humanoid)
+	if not airborne then
+		return
+	end
+	airborne = false
+	stopAir(0.08)
+	local speed = math.max(fallingSpeed, -root.AssemblyLinearVelocity.Y)
+	if speed < AIR.SoftLanding then
+		return -- a step down: nothing to soak up
+	end
+	local hard = math.clamp((speed - AIR.SoftLanding) / (AIR.HardLanding - AIR.SoftLanding), 0, 1)
+	if landTrack then
+		local moving = humanoid.MoveDirection.Magnitude > 0.1
+		local weight = (0.35 + 0.65 * hard) * (if moving then AIR.MovingLandWeight else 1)
+		landTrack:Play(0.05, weight, if moving then AIR.MovingLandSpeed else 1)
+	end
+	if speed >= AIR.DustSpeed then
+		local scale = math.clamp(speed / AIR.DustSpeed, 1, 1.6) * 0.8
+		VFX.Play("Land", CFrame.new(root.Position - Vector3.new(0, 3, 0)), { Ignore = { character }, Scale = scale })
+	end
+end
+
+local GROUND_STATES = {
+	[Enum.HumanoidStateType.Landed] = true,
+	[Enum.HumanoidStateType.Running] = true,
+	[Enum.HumanoidStateType.RunningNoPhysics] = true,
+}
+
+local function onState(character: Model, humanoid: Humanoid, new: Enum.HumanoidStateType)
+	local root = character:FindFirstChild("HumanoidRootPart")
+	if not (root and root:IsA("BasePart")) then
+		return
+	end
+	if new == Enum.HumanoidStateType.Jumping then
+		leaveFloor(true)
+	elseif new == Enum.HumanoidStateType.Freefall then
+		if not airborne then
+			leaveFloor(false) -- off an edge (or knocked up)
+		end
+	elseif GROUND_STATES[new] then
+		land(character, root, humanoid)
+	elseif airborne then
+		-- swimming, climbing, sitting, ragdolled, dead...: no fall pose and no landing
+		airborne = false
+		stopAir(0.15)
+	end
+end
+
+-- every frame in the air: how fast it's falling, and the fall pose when it's due
+local function updateAir()
+	if not airborne then
+		return
+	end
+	local _, root = parts(player)
+	if root then
+		fallingSpeed = math.max(fallingSpeed, -root.AssemblyLinearVelocity.Y)
+	end
+	if fallTrack and not fallTrack.IsPlaying and fallAt and os.clock() >= fallAt then
+		fallTrack:Play(if jumpTrack and jumpTrack.IsPlaying then 0.12 else 0.25)
+	end
+end
+
 --------------------------------------------------------------------------- input
 
 UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
@@ -306,6 +423,7 @@ end)
 local dust: { [Model]: any } = {}
 RunService.Heartbeat:Connect(function()
 	updateSprint()
+	updateAir()
 	for _, other in Players:GetPlayers() do
 		local character, root, humanoid = parts(other)
 		if character and root and humanoid then
@@ -330,9 +448,15 @@ end)
 --------------------------------------------------------------------------- the character
 
 local function onCharacter(character: Model)
-	sprinting = false
+	sprinting, fast, airborne = false, false, false
 	rollingUntil = 0
 	loadTracks(character)
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid.StateChanged:Connect(function(_, new: Enum.HumanoidStateType)
+			onState(character, humanoid, new)
+		end)
+	end
 end
 if player.Character then
 	task.spawn(onCharacter, player.Character)

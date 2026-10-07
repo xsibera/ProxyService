@@ -30,7 +30,7 @@ Gamepad uses X / Y / B. Touch devices get on-screen buttons. In the ability plac
   - the **parry system** (F to block, tap F to parry);
   - the **ability menu** (M) and hotbar.
 
-  You start with Killua's abilities: press M and pick the Gon, Leorio, Striker or Grappler preset, or mix them. It also has **sprinting** (hold Left Ctrl or double-tap W) and **rolling** (Q), see [Movement](../Movement/README.md).
+  You start with Killua's abilities: press M and pick the Gon, Leorio, Striker, Grappler or Kickboxer preset, or mix them. It also has **sprinting** (hold Left Ctrl or double-tap W), **rolling** (Q) and its own **jump, fall and landing** animations, see [Movement](../Movement/README.md).
 
   The map is **Whale Island** ([Village](../Village/README.md)), a small HxH-style village:
   - you spawn in the plaza;

@@ -12,6 +12,9 @@ The attacker's clips:
   Brawler Uppercut     0.8s   dropped low and wound right, then driven up through the chin (Hit 16)
   Brawler Roundhouse   0.85s  a spinning right roundhouse at head height, pivoting on the left foot (Hit 17)
   Brawler Axe Kick     1.0s   the right leg swung straight up past his head and the heel dropped (Hit 30)
+  Brawler Teep         1.23s  a heavy push kick off the back leg: a long wind-up with the knee held at the
+                              chest, the foot shoved straight out into their middle as he leans back
+                              behind it, and a stamp down after (Hit 31)
   Brawler Ground Slam  1.2s   a crouch, a hop with both fists locked overhead, and both brought down
                               into the floor as he lands (Hit 32)
   Brawler Grab         0.7s   a lunging two-handed grab (Grab 10); whiffed, he stumbles and recovers
@@ -295,6 +298,83 @@ def axe_kick():
     planted = plant(c, 30, {"LLeg": left, "RLeg": (0.5, -1.5)}, {"LLeg": 1.0, "RLeg": 0.3}, "accel")  # ...planted
     keep(c, 46, planted)
     plant(c, 60, {"LLeg": (-0.55, 0.3), "RLeg": (0.55, -1.5)}, {"LLeg": 0.6, "RLeg": 0.1}, "settle")
+    return c
+
+
+# --------------------------------------------------------------------------- Teep
+def teep():
+    """A heavy push kick (the teep), thrown off the back leg. A dip (the counter-move), then a long
+    wind-up: he rises and leans far back over the planted left foot, the right side turned away and
+    the right arm cocked back, the knee pulled right up to the chest and held there, sinking a touch
+    deeper (the load). Then everything goes at once: the hips whip round and drive through, the foot
+    is shoved straight out flat into the target's middle as he throws his weight back behind it and
+    slams the right arm down past the hip, the left fist up by the chin; the hips carry on through
+    (the push) and hold. The knee folds back, and the foot stamps down in front, the weight dropping
+    onto it, before he settles."""
+    c = Clip("Brawler Teep", 74, hit=31, arm="RArm", joints=FULL)
+    c.slerp = {"RArm", "LArm"}
+    rest(c)
+    dip = [-8, -6, 1, 0, -0.45, -0.1]
+    rising = [8, -12, -3, -0.08, -0.2, 0.2]
+    loaded = [20, -18, -5, -0.12, -0.1, 0.38]  # leaned far back, the right side turned away
+    deep = [23, -20, -6, -0.13, -0.13, 0.44]
+    kick = [30, 24, -2, -0.08, -0.22, -0.5]  # the hips whipped round and driven through
+    through = [34, 22, -1, -0.06, -0.26, -0.78]
+    hold = [31, 18, -1, -0.05, -0.27, -0.74]
+    fold = [8, 8, 0, -0.02, -0.36, -0.62]
+    stamp = [-10, 4, 0, 0, -0.62, -0.72]  # the weight dropped onto the foot as it stamps down
+    recoil = [-6, 3, 0, 0, -0.46, -0.7]
+    r = R(c)
+    r(6, dip, "decel")
+    r(14, rising, "coil")
+    r(22, loaded, "decel")
+    r(27, deep, "slowin")
+    r(31, kick, "whip")
+    r(35, through, "stop")
+    r(43, hold, "decel")
+    r(50, fold, "ease")
+    r(56, stamp, "accel")
+    r(62, recoil, "decel")
+    r(74, [-3, 0, 0, 0, -0.22, -0.55], "settle")
+    gaze(c, 0, (0, 0, -1))
+    gaze(c, 22, (0.05, -0.04, -1), "decel")
+    gaze(c, 31, (0, -0.15, -1), "snap")  # eyes down the leg at the target's middle
+    gaze(c, 56, (0, -0.08, -1), "accel")
+    gaze(c, 74, (0, -0.03, -1), "settle")
+    guard(c, 6, "RArm", "decel")
+    guard(c, 6, "LArm", "decel")
+    guard(c, 14, "RArm", "coil", lift=0.15)
+    guard(c, 14, "LArm", "coil", lift=0.2)
+    c.key("RArm", 22, reach("RArm", loaded, heading(125, -12), 0.05, twist=30), "decel")  # cocked back
+    c.key("RArm", 27, reach("RArm", deep, heading(138, -6), 0.05, twist=30), "slowin")
+    guard(c, 22, "LArm", "decel", lift=0.3)
+    guard(c, 27, "LArm", "slowin", lift=0.3)
+    c.key("RArm", 31, reach("RArm", kick, heading(170, -62), 0.15, twist=20), "snap")  # slammed down past the hip
+    c.key("RArm", 35, reach("RArm", through, heading(176, -46), 0.15, twist=20), "stop")
+    c.key("RArm", 43, reach("RArm", hold, heading(165, -50), 0.1, twist=20), "decel")
+    guard(c, 31, "LArm", "snap", lift=0.1)
+    guard(c, 35, "LArm", "stop", lift=0.1)
+    c.key("RArm", 50, reach("RArm", fold, heading(80, -62), 0.05, twist=30), "ease")
+    guard(c, 56, "RArm", "accel")
+    guard(c, 50, "LArm")
+    guard(c, 74, "RArm", "settle")
+    guard(c, 74, "LArm", "settle")
+    # legs: the left foot planted throughout; the right knee pulled up to the chest and held, the foot
+    # shoved out straight from the hip at full length a touch above level (the target's stomach),
+    # held through the push, folded and stamped down ahead
+    left = (-0.55, 0.05)
+    plant(c, 0, STANDING_FEET, {"LLeg": 0.0, "RLeg": 0.0})
+    plant(c, 6, {"LLeg": left, "RLeg": (0.6, 0.45)}, {"LLeg": 0.1, "RLeg": 0.3}, "decel")
+    for f, root, el, length, k in ((12, lerp(dip, rising, 0.7), -60, 1.5, "accel"),
+                                   (18, lerp(rising, loaded, 0.5), -32, 1.15, "decel"),
+                                   (22, loaded, -18, 0.95, "decel"), (27, deep, -14, 0.9, "slowin"),
+                                   (29, lerp(deep, kick, 0.45), -2, 1.5, "linear"), (31, kick, 9, 2.0, "linear"),
+                                   (35, through, 6, 2.0, "stop"), (43, hold, 4, 2.0, "decel"),
+                                   (47, lerp(hold, fold, 0.5), -20, 1.5, "ease"), (50, fold, -45, 1.25, "ease")):
+        plant(c, f, {"LLeg": left, "RLeg": leg_out(root, "RLeg", 3, el, length)},
+              {"LLeg": 0.0, "RLeg": 1.0} if f == 12 else None, k)
+    planted = plant(c, 56, {"LLeg": left, "RLeg": (0.6, -1.15)}, {"LLeg": 0.6, "RLeg": 0.2}, "accel")  # stamped
+    keep(c, 74, planted, "settle", {"LLeg": 0.45, "RLeg": 0.1})
     return c
 
 
@@ -693,7 +773,7 @@ def grab_clips():
     return out, paths
 
 
-CLIPS = [haymaker, uppercut, roundhouse, axe_kick, ground_slam, grab, get_up]
+CLIPS = [haymaker, uppercut, roundhouse, axe_kick, teep, ground_slam, grab, get_up]
 
 def bake_all():
     """[(clip, baked)] for every clip (the throws' too): the feet and head solved on every frame and

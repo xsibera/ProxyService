@@ -1,7 +1,9 @@
 --!nocheck
--- Headless test of MovementClient: sprinting (Left Ctrl, double-tap W, the toggle), its animation,
--- giving way to whatever else sets the walk speed; rolling (the way you move, the push, the
--- animation, the effects, the cooldown, not while stunned or mid-attack); everyone's run dust.
+-- Headless test of MovementClient: sprinting (Left Ctrl, double-tap W, the toggle), its animation
+-- played at the speed really gone, giving way to whatever else sets the walk speed; rolling (the way
+-- you move, the push, the animation, the effects, the cooldown, not while stunned or mid-attack);
+-- jumping, falling and landing (from the Humanoid's states, the landing as hard as the fall);
+-- everyone's run dust.
 -- Run from this folder:  cd Abilities/Movement && luaurun tests/client.luau
 
 local H = assert(loadfile("tests/harness.luau"))()
@@ -47,6 +49,25 @@ end
 local function playing(name)
 	return H.playing(aModel, name)
 end
+local function track(name)
+	for _, t in ipairs(H.tracks) do
+		local props = rawget(t, "__props")
+		if props.__model == aModel and props.__kfs == "rbxassetid://temp-" .. name then
+			return props
+		end
+	end
+end
+local function lastPlay(name)
+	for i = #H.played, 1, -1 do
+		local p = H.played[i]
+		if p.model == aModel and p.name == "rbxassetid://temp-" .. name then
+			return p
+		end
+	end
+end
+local function state(new)
+	hum.StateChanged:Fire(Enum.HumanoidStateType.Running, new)
+end
 local function rolls()
 	return H.sent("Roll", "client", H.remote)
 end
@@ -73,7 +94,7 @@ local function played(name)
 end
 
 print("== Boot")
-check(H.registered == 2, "Sprint and Roll registered for Studio play")
+check(H.registered == 5, "Sprint, Roll, Jump, Fall and Land registered for Studio play")
 check(mock.actions.MovementRoll and mock.actions.MovementRoll.inputs[1] == ROLL.Key, "Q rolls")
 check(mock.actions.MovementSprint and mock.actions.MovementSprint.touch == true, "a Sprint button on touch")
 
@@ -85,6 +106,13 @@ hum.MoveDirection = Vector3.new(0, 0, -1)
 mock.advance(0.05)
 check(hum.WalkSpeed == Config.SprintSpeed, "moving: sprinting")
 check(playing("Sprint"), "the run plays")
+root.AssemblyLinearVelocity = Vector3.new(0, 0, -Config.RunAnimationSpeed)
+mock.advance(0.05)
+check(near(track("Sprint").Speed, 1, 1e-3), "at full speed: the run at its own speed")
+root.AssemblyLinearVelocity = Vector3.new(0, 0, -0.8 * Config.RunAnimationSpeed)
+mock.advance(0.05)
+check(near(track("Sprint").Speed, 0.8, 1e-3), "slower: the run slows to match (the feet stay planted)")
+root.AssemblyLinearVelocity = Vector3.zero
 hum.WalkSpeed = 10 -- swinging (the server slows them)
 mock.advance(0.05)
 check(hum.WalkSpeed == 10, "something else sets the walk speed: it wins")
@@ -175,6 +203,74 @@ H.remote.OnClientEvent:Fire("Denied", 2)
 mock.actions.MovementRoll.fn("MovementRoll", Enum.UserInputState.Begin)
 check(#rolls() == 3, "the server says wait: waits")
 mock.advance(2.1)
+
+print("== Jumping, falling, landing")
+local AIR = Config.Air
+hum.MoveDirection = Vector3.zero
+state(Enum.HumanoidStateType.Jumping)
+check(playing("Jump") and not playing("Fall"), "jump: the jump plays")
+state(Enum.HumanoidStateType.Freefall)
+root.AssemblyLinearVelocity = Vector3.new(0, 40, 0)
+mock.advance(0.2)
+check(playing("Jump") and not playing("Fall"), "rising: still the jump")
+mock.advance(0.3)
+check(playing("Fall"), "the jump done, still in the air: the fall pose")
+root.AssemblyLinearVelocity = Vector3.new(0, -53, 0)
+mock.advance(0.1)
+root.AssemblyLinearVelocity = Vector3.zero
+VFX.clear()
+state(Enum.HumanoidStateType.Landed)
+check(not playing("Jump") and not playing("Fall"), "landed: the air poses stop")
+local landing = lastPlay("Land")
+check(playing("Land") and landing.weight == 1 and landing.speed == 1, "standing still: the full landing")
+check(played("Land") == nil, "a normal jump: no dust")
+state(Enum.HumanoidStateType.Running)
+check(lastPlay("Land") == landing, "running after landing: no second landing")
+mock.advance(0.6)
+
+state(Enum.HumanoidStateType.Freefall) -- walked off an edge
+mock.advance(AIR.FallDelay / 2)
+check(not playing("Fall") and not playing("Jump"), "off an edge: no jump, and no fall pose straight away")
+mock.advance(AIR.FallDelay)
+check(playing("Fall") and lastPlay("Fall").fade == 0.25, "a moment later: the fall pose eases in")
+root.AssemblyLinearVelocity = Vector3.new(0, -12, 0)
+mock.advance(0.05)
+root.AssemblyLinearVelocity = Vector3.zero
+local before = lastPlay("Land")
+state(Enum.HumanoidStateType.Landed)
+check(lastPlay("Land") == before and not playing("Fall"), "a step down: no landing")
+
+state(Enum.HumanoidStateType.Jumping)
+hum.MoveDirection = Vector3.new(0, 0, -1)
+root.AssemblyLinearVelocity = Vector3.new(0, -53, -26)
+mock.advance(0.1)
+state(Enum.HumanoidStateType.Landed)
+landing = lastPlay("Land")
+check(
+	landing ~= before and near(landing.weight, AIR.MovingLandWeight, 1e-3) and landing.speed == AIR.MovingLandSpeed,
+	"landing on the move: lighter and quicker"
+)
+hum.MoveDirection = Vector3.zero
+root.AssemblyLinearVelocity = Vector3.zero
+mock.advance(0.6)
+
+state(Enum.HumanoidStateType.Freefall)
+root.AssemblyLinearVelocity = Vector3.new(0, -95, 0)
+mock.advance(0.5)
+VFX.clear()
+state(Enum.HumanoidStateType.Landed)
+check(played("Land") ~= nil and played("Land").options.Ignore[1] == aModel, "a long drop: dust where you land")
+root.AssemblyLinearVelocity = Vector3.zero
+mock.advance(0.6)
+
+state(Enum.HumanoidStateType.Jumping)
+mock.advance(0.5)
+state(Enum.HumanoidStateType.Climbing)
+check(not playing("Jump") and not playing("Fall"), "grabbing a ladder mid-air: the air poses stop")
+before = lastPlay("Land")
+state(Enum.HumanoidStateType.Landed)
+check(lastPlay("Land") == before, "and no landing after")
+mock.advance(0.1)
 
 print("== Everyone")
 VFX.clear()
