@@ -131,7 +131,7 @@ The aura is gold-orange nen, in the game's Jajanken orange. The hits are the nen
 | Effect | When | What |
 |---|---|---|
 | `Aura` | while charging, on the body | Nen rising off the body, a swirl of aura and smoke at the feet and dust blown out across the floor. Power lines come in at 35% charge, a second layer at 70%, and pebbles lift off the floor at 45%. It thickens and brightens with the charge. |
-| `RockCharge` / `PaperCharge` / `ScissorsCharge` | while charging, at the fist | The RockRA fire round a white core, a ball of aura forming in the palm, or a blade of aura streaming off the fingers. Each grows with the charge. |
+| `HandCharge` | while charging, at the fist | The RockRA fire round a white core and its glow, growing with the charge. It's the same for all three modes: as in the anime, you can't tell which one is coming until the release. |
 | `Release` | on letting go | The aura flares off the body, and a ring of air and dust is pushed out across the floor. |
 | `RockBlast` | Rock's hit, at the fist | The nen detonates forward. Wind bursts, a spinning gust, pressure rings and streaks blast out, with a cone of smoke that hangs. On the floor: wind, a wall of dust, rocks (30%+) and cracks (60%+). |
 | `PaperBall` | in flight | The PaperProjectile orb, trailing air streaks and thin smoke. |

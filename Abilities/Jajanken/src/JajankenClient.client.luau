@@ -260,7 +260,7 @@ local function parts(who: Player): (Model?, BasePart?, BasePart?, Humanoid?)
 end
 
 -- the aura round the body and the charge gathering in the hand
-local function startAura(who: Player, mode: string): (Attached?, Attached?)
+local function startAura(who: Player): (Attached?, Attached?)
 	local character, root, arm = parts(who)
 	if not (character and root) then
 		return nil, nil
@@ -268,7 +268,7 @@ local function startAura(who: Player, mode: string): (Attached?, Attached?)
 	local aura = VFX.Attach("Aura", root, nil, { Charge = 0, Ignore = { character } })
 	local hand = if arm
 		then VFX.Attach(
-			mode .. "Charge",
+			"HandCharge", -- the same for all three: the mode only shows on the release
 			arm,
 			if arm.Name == "Right Arm" then HAND else CFrame.identity,
 			{ Charge = 0 }
@@ -351,7 +351,7 @@ local function beginCharge(mode: string)
 	if not (character and root and humanoid and humanoid.Health > 0) then
 		return
 	end
-	local aura, hand = startAura(player, mode)
+	local aura, hand = startAura(player)
 	charging = { mode = mode, started = now, aura = aura, hand = hand }
 	stop("Hold", 0)
 	play("Charge", 0.08)
@@ -449,7 +449,7 @@ Remote.OnClientEvent:Connect(function(kind: string, a: any, b: any, c: any, d: a
 	if kind == "Charge" then -- a: caster, b: mode, c: startedAt
 		if a ~= player then
 			stopOther(a, nil)
-			local aura, hand = startAura(a, b)
+			local aura, hand = startAura(a)
 			others[a] = { mode = b, startedAt = c, aura = aura, hand = hand }
 		end
 	elseif kind == "Stop" then -- a: caster

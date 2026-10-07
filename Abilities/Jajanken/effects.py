@@ -10,7 +10,7 @@ bursts, flash frames or black frames.
 
 Placement (JajankenVFX.luau):
   Aura            Attach to the HumanoidRootPart while charging ("Feet" sits on the floor)
-  <Mode>Charge    Attach to the Right Arm at the fist while charging (RockCharge, PaperCharge, ScissorsCharge)
+  HandCharge      Attach to the Right Arm at the fist while charging (the same for all three modes)
   Release         Play at the caster's HumanoidRootPart on release
   RockBlast       Play at the fist, LookVector = the punch
   PaperBall       the projectile (continuous), LookVector = its travel
@@ -135,9 +135,10 @@ def aura():
     return {"name": "Aura", "layers": {"": body, "Feet": feet}, "subs": {"Feet": (0, -2.9, 0)}}
 
 
-def rock_charge():
-    """Rock, in the fist: the game's RockRA fire (orange round a white core) and its glow, swelling
-    as it charges."""
+def hand_charge():
+    """The aura gathering in the fist while charging, the same for all three (as in the anime, the
+    opponent can't tell Rock from Paper or Scissors until the release): the game's RockRA fire
+    (orange round a white core) and its glow, swelling as it charges."""
     fist = [
         Layer("nen_fire", "Fire", continuous=True, size=1.2, color=("ffd08a", DEEP), flags=charged(Grow=0.9, RateGrow=0.5)),
         Layer("nen_fire2", "Fire2", continuous=True, size=1.15, color=DEEP, flags=charged(Grow=0.9, RateGrow=0.5)),
@@ -145,33 +146,7 @@ def rock_charge():
         Layer("nen_glow", "Glow", continuous=True, size=2.2, color="ff6a00", flags=charged(Grow=0.8, MinCharge=0.1)),
         Light(DEEP, 6, attrs={"MaxBrightness": 1.2}),
     ]
-    return {"name": "RockCharge", "layers": {"": fist}}
-
-
-def paper_charge():
-    """Paper, in the palm: a ball of aura forming and growing (the PaperProjectile layers, small)."""
-    palm = [
-        Layer("nen_glow", "Orb", continuous=True, size=1.6, color="ff8a2a", flags=charged(Grow=1.2)),
-        Layer("nen_fire", "Fire", continuous=True, size=1.0, color=("ffd08a", DEEP), flags=charged(Grow=1.0)),
-        Layer("nen_fire", "Core", continuous=True, size=0.7, color=WHITE, le=0.4, flags=charged(Grow=1.2)),
-        Light(DEEP, 6, attrs={"MaxBrightness": 1.2}),
-    ]
-    return {"name": "PaperCharge", "layers": {"": palm}}
-
-
-def scissors_charge():
-    """Scissors, off the two fingers: a blade of aura streaming straight out of the hand (the arm's
-    -Y), locked to it, lengthening with the charge."""
-    fingers = [
-        Layer("nen_fire", "Blade", continuous=True, rate=60, life=(0.18, 0.28), size=0.8, dir=BOTTOM, ori=VEL_PAR,
-              spread=(4, 4), speed=(6, 9), drag=2, accel=(0, 0, 0), lock=True, color=(HOT, DEEP),
-              flags=charged(Grow=0.7)),
-        Layer("nen_fire2", "Blade2", continuous=True, rate=50, life=(0.15, 0.25), size=0.6, dir=BOTTOM, ori=VEL_PAR,
-              spread=(6, 6), speed=(5, 8), drag=2, accel=(0, 0, 0), lock=True, color=DEEP, flags=charged(Grow=0.7)),
-        Layer("nen_glow", "Glow", continuous=True, size=1.4, color="ff6a00", flags=charged(Grow=0.6)),
-        Light(DEEP, 6, attrs={"MaxBrightness": 1.0}),
-    ]
-    return {"name": "ScissorsCharge", "layers": {"": fingers}}
+    return {"name": "HandCharge", "layers": {"": fist}}
 
 
 # --------------------------------------------------------------------------- casting
@@ -328,7 +303,7 @@ def nen_hit():
     return {"name": "NenHit", "layers": {"": hit}}
 
 
-EFFECTS = [aura, rock_charge, paper_charge, scissors_charge, release, rock_blast, paper_ball, paper_blast,
+EFFECTS = [aura, hand_charge, release, rock_blast, paper_ball, paper_blast,
            scissors_slash, nen_hit]
 _ = CAM  # (camera-facing is the reference default for most of these layers)
 

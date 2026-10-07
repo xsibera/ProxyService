@@ -11,24 +11,12 @@ return {
 		{ sub = "Feet", name = "Dust", class = "ParticleEmitter", attrs = { Continuous = true, GroundOnly = true, UseGroundColor = true, MinCharge = 0.15, RateGrow = 0.8 } },
 		{ sub = "Feet", name = "Pebbles", class = "ParticleEmitter", attrs = { Continuous = true, GroundOnly = true, UseGroundColor = true, MinCharge = 0.45, RateGrow = 0.7 } },
 	},
-	RockCharge = {
+	HandCharge = {
 		{ sub = "", name = "Fire", class = "ParticleEmitter", attrs = { Continuous = true, Grow = 0.9, RateGrow = 0.5 } },
 		{ sub = "", name = "Fire2", class = "ParticleEmitter", attrs = { Continuous = true, Grow = 0.9, RateGrow = 0.5 } },
 		{ sub = "", name = "Core", class = "ParticleEmitter", attrs = { Continuous = true, Grow = 0.6 } },
 		{ sub = "", name = "Glow", class = "ParticleEmitter", attrs = { Continuous = true, Grow = 0.8, MinCharge = 0.1 } },
 		{ sub = "", name = "Glow", class = "PointLight", attrs = { MaxBrightness = 1.2 } },
-	},
-	PaperCharge = {
-		{ sub = "", name = "Orb", class = "ParticleEmitter", attrs = { Continuous = true, Grow = 1.2 } },
-		{ sub = "", name = "Fire", class = "ParticleEmitter", attrs = { Continuous = true, Grow = 1.0 } },
-		{ sub = "", name = "Core", class = "ParticleEmitter", attrs = { Continuous = true, Grow = 1.2 } },
-		{ sub = "", name = "Glow", class = "PointLight", attrs = { MaxBrightness = 1.2 } },
-	},
-	ScissorsCharge = {
-		{ sub = "", name = "Blade", class = "ParticleEmitter", attrs = { Continuous = true, Grow = 0.7 } },
-		{ sub = "", name = "Blade2", class = "ParticleEmitter", attrs = { Continuous = true, Grow = 0.7 } },
-		{ sub = "", name = "Glow", class = "ParticleEmitter", attrs = { Continuous = true, Grow = 0.6 } },
-		{ sub = "", name = "Glow", class = "PointLight", attrs = { MaxBrightness = 1.0 } },
 	},
 	Release = {
 		{ sub = "", name = "Flare", class = "ParticleEmitter", attrs = { EmitCount = 1.0 } },
