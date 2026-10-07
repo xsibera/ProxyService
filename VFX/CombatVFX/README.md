@@ -1,24 +1,26 @@
 # Combat VFX pack
 
-Basic combat effects in the style of `VFXFORCLAUDE.rbxm` and `nen.rbxm`. They cover hits, a ground slam, dashing and movement. Every layer is built from one of your own emitters (picked by its texture), so the textures keep their flipbooks, glow and stretch. Each layer is then resized, re-timed, re-aimed and recoloured for its new job.
+Basic combat effects: hits, a ground slam, dashing and movement. They're **realistic wind**: everything is moving air, smoke and dust, with no flashes, stars, glows or lights.
+- **Faint air:** the air layers are as faint as your own wind layers in `VFXFORCLAUDE.rbxm` / `nen.rbxm`, peaking at 15–55% opacity in greys, and they stack up to give the shape.
+- **Your textures:** every layer is built from one of your emitters, picked by texture, so each texture keeps its flipbook and look. Each layer is then resized, re-timed, re-aimed and recoloured.
 
 `CombatVFX.rbxm` is a ModuleScript called **CombatVFX** with the effects inside it, in `CombatVFX/Effects`. Put it in ReplicatedStorage.
 
-| Effect | Use it for | Place it at | Layers | Lasts |
+| Effect | What it is | Place it at | Layers | Lasts |
 |---|---|---|---|---|
-| `M1Hit` | Every M1 that connects | The victim's torso, facing along the hit | 8 | 0.6s |
-| `M1Final` | The last hit of a string | The same | 14 (2 on the floor) | 0.9s |
-| `HeavyHit` | Heavy / charged hits, finishers | The same | 21 (4 on the floor) | 1.6s |
-| `GroundSlam` | Slams, landings from a big jump | The floor point | 29 | 4s (the dust hangs) |
-| `DashBurst` | The start of a dash | The HumanoidRootPart, facing the dash | 10 | 0.9s |
-| `DashTrail` | During a dash (continuous) | `Start` on the HumanoidRootPart | 3 | until `Stop` |
-| `Footstep` | Each footfall while sprinting | The foot's floor point, facing the run | 3 | 0.6s |
-| `Land` | Landing from a fall | The floor point under the character | 6 | 0.9s |
-| `Jump` | Take-off | The floor point under the character | 3 | 0.6s |
-| `SlideDust` | During a slide (continuous) | `Start` on the HumanoidRootPart | 3 | until `Stop` |
-| `RunDust` | While sprinting (continuous) | `Start` on the HumanoidRootPart | 1 | until `Stop` |
+| `M1Hit` | A puff of air through the target: wind burst, swirls, pressure ring, wind arcs, air streaks and a little dust | The victim's torso, facing along the hit | 6 | 0.6s |
+| `M1Final` | A bigger blast of air, plus a smoke puff out the far side and a dust ring on the floor | The same | 12 | 1s |
+| `HeavyHit` | A cone of wind in three waves, spinning wind, pressure waves, and smoke that hangs, plus wind and dust across the floor | The same | 19 | 1.6s |
+| `GroundSlam` | Air blasting out flat across the floor, a radial wall of smoke, billows, dirt and rocks, cracks, and dust that hangs | The floor point | 20 | 4s |
+| `DashBurst` | A gust tearing off behind the body, and a ring of wind and dust under the feet | The HumanoidRootPart, facing the dash | 9 | 0.9s |
+| `DashTrail` | Wind arcs and air streaks off the body, dust off the feet (continuous) | `Start` on the HumanoidRootPart | 3 | until `Stop` |
+| `Footstep` | A small puff and grains | The foot's floor point, facing the run | 3 | 0.6s |
+| `Land` | A ring of air and a swirl, and dust blown out to both sides | The floor point under the character | 6 | 0.9s |
+| `Jump` | A ring of air and a swirl under the feet, and a puff of dust | The floor point under the character | 3 | 0.6s |
+| `SlideDust` | A dust and grit spray (continuous) | `Start` on the HumanoidRootPart | 3 | until `Stop` |
+| `RunDust` | A light dust trail (continuous) | `Start` on the HumanoidRootPart | 1 | until `Stop` |
 
-All of them are neutral white and grey, so they work for any move. Pass `Color` to tint the flash, star, shards and embers (the **Accent** layers) for elemental or nen moves.
+Pass `Color` to tint the wind (the **Accent** layers) for elemental or nen moves. Without it, the wind stays white and grey.
 
 ## Using it
 
@@ -31,7 +33,7 @@ CombatVFX.Play("M1Hit", CFrame.lookAt(at, at + attackerRoot.CFrame.LookVector),
 	{ Ignore = { attacker, victim } })
 
 -- last hit of the string, in the move's colour
-CombatVFX.Play("M1Final", CFrame.lookAt(at, at + dir), { Ignore = { attacker, victim }, Color = Color3.fromRGB(255, 87, 37) })
+CombatVFX.Play("M1Final", CFrame.lookAt(at, at + dir), { Ignore = { attacker, victim }, Color = Color3.fromRGB(133, 255, 231) })
 
 -- slam: at the floor point
 CombatVFX.Play("GroundSlam", CFrame.new(floorPosition), { Ignore = { attacker } })
@@ -47,7 +49,7 @@ local slide = CombatVFX.Start("SlideDust", root) -- slide:Stop() when the slide 
 ```
 
 `Play(name, cframe, options)` returns the holder part, which cleans itself up once the last particle dies. `Start(name, part, options)` returns a handle with `:Stop()`. Options are all optional:
-- **`Color`:** the move's colour, applied to the Accent layers.
+- **`Color`:** the move's colour, applied to the wind (Accent) layers.
 - **`Scale`:** scales sizes, speeds and offsets. Use it for bigger characters or heavier landings.
 - **`Ignore`:** instances the floor raycast skips. Pass the characters involved. Players' characters are always skipped.
 - **`Parent`:** where one-shot holders go. The default is workspace.
@@ -61,9 +63,10 @@ Play effects on the client for the best feel. Fire a remote event and have every
   - `GroundOnly` layers are skipped when there's no floor within 14 studs, e.g. a hit in mid-air.
   - `UseGroundColor` layers are tinted 60% toward the floor's colour, so dust on grass reads green and dust on sand reads tan.
 - **Continuous effects** follow the floor under the part every frame, and switch their ground layers off in the air.
-- **Light:** hits and the slam also flash a short PointLight (no shadows) that fades out over 0.1–0.3s.
 
-## The style these follow (measured from your files)
+## What your files use (measured)
+
+The pack uses your wind, air, smoke and dust layers. Your files also have bright flash, star and eruption layers, which give the anime look, and the pack leaves those out.
 
 About 600 emitters across Jajanken, BigBang, CrazySlots, Swordsmans Slash, Disrupt, SweepKick and the nen auras.
 

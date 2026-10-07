@@ -30,55 +30,36 @@ CAM, CAM_UP, VEL_PAR, VEL_PERP = range(4)
 
 # --------------------------------------------------------------------------- reference emitters
 TEX = {  # role -> (texture id, path hint picking which reference emitter to copy)
-    "flash_big": ("13853120945", "GroundImpact/flash"),
-    "flash_short": ("108142928341917", "GroundImpact/3"),
-    "flash_burst": ("7162072137", "Burst/3"),
-    "flash_flat": ("16697955702", "FLASH"),
-    "flash_star": ("14080556170", "GroundImpact/Impact"),
-    "black_flat": ("16559053748", "GroundImpact/Impact"),
-    "impact_fb": ("110231729477276", "JajankenImpact/Impact"),
-    "impact_fb_flat": ("115669629549824", "JajankenImpact/Impact"),
-    "impact_flicker": ("18397658030", "JajankenImpact/impact"),
-    "ring_grey": ("134323380005873", "GroundImpact/shockwave"),
-    "ring_white": ("96004355425020", "Extra/shockwave"),
-    "ring_shock": ("95143770508905", "GroundImpact/shock"),
-    "ring_fast": ("9641756324", "Shockwave2"),
-    "ring_linger": ("15056677063", "Shockwaves1"),
-    "ring_spin": ("10149702982", "impactshock"),
-    "ring_3": ("11707580805", "Shockwave3"),
-    "cresc_spin": ("140234193278455", "cresc"),
-    "cresc_out": ("105372547148688", "cresc"),
-    "wind_fb": ("119303887930651", "GroundImpact/wind"),
+    # wind and air
+    "wind_burst": ("15574235597", "WIND3"),  # 4x4 wind blast flipbook
+    "wind_swirl": ("98612397494241", "goodwindflip"),  # 4x4 swirling wind
+    "wind_swirl2": ("107694353577834", "winddflip34"),
+    "wind_crescent": ("15011468690", "Windy Crescent"),  # 4x4 wind crescent
+    "wind_fb": ("119303887930651", "GroundImpact/wind"),  # 4x4 ground wind, spun
     "wind_spin": ("108159585520170", "GroundImpact/wind"),
     "wind_spin2": ("127670412975280", "GroundImpact/wind"),
-    "wind_flip": ("98612397494241", "goodwindflip"),
-    "wind_arc": ("10859315454", ""),
-    "shards": ("17164994986", "shards"),
-    "streak": ("14505952260", "GroundTPEmit/12"),
-    "streak_fast": ("9660685442", "GroundTPEmit/2"),
-    "streak_big": ("14680194852", "GroundTPEmit/1"),
-    "stretch_flash": ("12262387727", "GroundTPEmit"),
-    "streak_5": ("14730297032", "GroundTPEmit/5"),
-    "specs": ("98820846953467", "BangImpact/ParticleEmitter"),
-    "ember": ("14005903992", "ember"),
+    "wind_big": ("139946503438976", "GroundImpact/wind"),
+    "wind_arc": ("10859315454", ""),  # grey wind arcs
+    "air_shock": ("95143770508905", "GroundImpact/shock"),  # faint air-pressure ring
+    "air_shock_fb": ("89531304475987", "SweepKick/shock"),
+    "air_ring": ("134323380005873", "GroundImpact/shockwave"),  # grey shockwave, run soft
+    "streak": ("14505952260", "GroundTPEmit/12"),  # thin air streaks
+    # smoke and dust
+    "billow": ("15415212938", "Billowing"),
+    "smoke_fb": ("127900103415485", "GroundImpact/Smoke"),
+    "smoke_burst": ("126248619163267", "GroundImpact/Smoke"),
+    "smoke_fast": ("140112533856157", "GroundImpact/Smoke"),
+    "smoke_linger": ("109202189790588", "smokeBack"),
+    "cloud": ("90422254305404", "irregularcloud1"),
     "dust": ("8527116276", "ImpactFeet/duhhst"),
     "dust_big": ("1084987899", "ImpactFeet/duhhst"),
-    "smoke_burst": ("126248619163267", "GroundImpact/Smoke"),
-    "smoke_burst2": ("82804901664521", "GroundImpact/Smoke"),
-    "smoke_fast": ("140112533856157", "GroundImpact/Smoke"),
-    "smoke_fb": ("127900103415485", "GroundImpact/Smoke"),
-    "smoke_linger": ("109202189790588", "smokeBack"),
-    "smoke_linger2": ("93675353995344", "smokeBack"),
-    "billow": ("15415212938", "Billowing"),
+    # ground
     "rock": ("626588936", "JajankenImpact/rock"),
     "dirt": ("120481559306849", "Dirt"),
     "clumps": ("16177865281", "JajankenImpact/3"),
     "crack_fb": ("17137667240", "crack1"),
     "crack": ("108864559214218", "crack1"),
-    "crack2": ("17013333656", "crack"),
     "scorch": ("13781849388", "Realistic"),
-    "glow": ("17844277603", "glow"),
-    "land_lines": ("2360242557", "ImpactFeet/16"),
 }
 
 
@@ -305,172 +286,155 @@ def attachment(name, pos=(0, 0, 0), up=None, attrs=None):
 
 GROUND = {"GroundOnly": True, "UseGroundColor": True}
 ACCENT = {"Accent": True}
-FADE = [[0, 0, 0], [1, 1, 0]]  # opaque -> gone
-FADE_SOFT = [[0, 0.6, 0], [1, 1, 0]]
 DUST_FADE = [[0, 0.55, 0], [0.4, 0.7, 0], [1, 1, 0]]
-GREY, LIGHT, DARK, WHITE, BLACK = "9f9d9b", "d6d6d6", "4d4d4d", "ffffff", "000000"
+GREY, LIGHT, DARK, WHITE = "9f9d9b", "d6d6d6", "4d4d4d", "ffffff"
 
 
 # --------------------------------------------------------------------------- the effects
+# Realistic wind: every effect is moving air, smoke and dust. No flashes, stars, glows or lights. The
+# air layers are faint like the reference's (peak opacity 25-55%, grey) and stack up into the shape;
+# Accent layers (the wind) take a move's colour when one is passed in.
 # Placement: Play(name, cframe) puts the effect's root at cframe with its Front (-Z, LookVector)
 # along the hit / travel direction; the "Ground" attachment is dropped onto the floor below it.
+AIR = [[0, 0.5, 0], [0.5, 0.7, 0], [1, 1, 0]]  # faint wind
+AIR_SOFT = [[0, 0.65, 0], [0.5, 0.8, 0], [1, 1, 0]]
+STREAK = [[0, 0.45, 0], [1, 1, 0]]
+WIND_GREY, WIND_LIGHT = "9a9a9a", "c4c4c4"
+
+
 def m1_hit():
-    """Light M1 contact: a hot white pop, a ring punched along the hit, crescents and streaks
-    sprayed through the target and a little dust. About 0.4s, sized for a 5-stud character."""
+    """Light M1 contact: a puff of air blasted through the target (a wind burst, a swirl, a
+    pressure ring and a couple of wind arcs), a few air streaks and a little dust. About 0.4s."""
     hit = [
-        Layer("flash_burst", "Flash", count=1, life=(0.06, 0.08), size=6.5, br=6, le=1, z=3, color=WHITE, flags=ACCENT),
-        Layer("impact_fb", "Pop", count=1, life=(0.14, 0.14), size=4.5, speed=(6, 6), dir=FRONT, drag=15, br=3, z=2,
-              color=WHITE, flags=ACCENT),
-        Layer("ring_white", "Ring", count=1, life=(0.12, 0.16), size=6, dir=FRONT, ori=VEL_PERP, speed=(0.01, 0.01),
-              le=1, br=1.5, transp=FADE_SOFT),
-        Layer("ring_fast", "RingSnap", count=1, life=(0.08, 0.1), size=7.5, dir=FRONT, ori=VEL_PERP, speed=(0.01, 0.01),
-              le=1, br=1.2),
-        Layer("cresc_spin", "Crescents", count=3, life=(0.1, 0.18), size=4.5, dir=FRONT, ori=VEL_PERP, speed=(0.02, 0.02),
-              rotspeed=(-800, -550), le=1),
-        Layer("streak", "Streaks", count=6, life=(0.08, 0.2), size=1.6, dir=FRONT, spread=(32, 32), speed=(45, 75),
-              drag=15, color=WHITE, z=1.5),
-        Layer("specs", "Specks", count=5, life=(0.25, 0.45), size=1.6, dir=FRONT, spread=(45, 45), speed=(14, 30),
-              drag=5, color=LIGHT, le=0.6, br=1.5),
-        Layer("dust", "Puff", count=3, life=(0.35, 0.6), size=2.4, dir=FRONT, spread=(60, 60), speed=(6, 16),
+        Layer("wind_burst", "AirBurst", spread=(0, 0), count=1, life=(0.3, 0.4), size=6, dir=FRONT, ori=VEL_PERP,
+              speed=(0.1, 0.1), color=WHITE, transp=AIR, flags=ACCENT),
+        Layer("wind_swirl", "AirSwirl", count=2, life=(0.3, 0.5), size=5, dir=FRONT, ori=VEL_PERP, spread=(15, 15),
+              speed=(0.05, 0.05), rotspeed=(60, 140), color=WIND_LIGHT, transp=AIR, le=0.3, br=1, flags=ACCENT),
+        Layer("air_shock", "PressureRing", count=1, life=(0.18, 0.24), size=6.5, dir=FRONT, ori=VEL_PERP,
+              speed=(0.15, 0.15), drag=3.8, color=WHITE, transp=AIR),
+        Layer("wind_arc", "WindArcs", count=2, life=(0.2, 0.35), size=5, dir=FRONT, ori=VEL_PERP, speed=(0.5, 2),
+              rotspeed=(200, 400), color=WIND_GREY, transp=AIR, le=0.4, br=1),
+        Layer("streak", "AirStreaks", count=4, life=(0.08, 0.18), size=1.2, dir=FRONT, spread=(28, 28),
+              speed=(35, 60), drag=12, color=WIND_LIGHT, transp=STREAK, z=1),
+        Layer("dust", "DustPuff", count=3, life=(0.35, 0.6), size=2.2, dir=FRONT, spread=(50, 50), speed=(5, 14),
               drag=7, accel=(0, 1.5, 0), color=LIGHT, transp=DUST_FADE),
     ]
-    return {"name": "M1Hit", "layers": {"": hit}, "light": (4, 8, 0.12)}
+    return {"name": "M1Hit", "layers": {"": hit}}
 
 
 def m1_final():
-    """Last hit of the string: the M1 pop with a black/white contrast frame, a double ring, a fan
-    of streaks and shards blown through the target, a smoke burst, and a dust ring on the floor."""
+    """Last hit of the string: a bigger blast of air through the target (two wind bursts, swirls,
+    rings, wind arcs and streaks), a smoke puff blown out the far side and a dust ring on the floor."""
     hit = [
-        Layer("flash_big", "Flash", count=1, life=(0.1, 0.1), size=12, br=12, z=6, color=WHITE, flags=ACCENT),
-        Layer("black_flat", "BlackFrame", count=1, life=(0.07, 0.12), size=9, dir=FRONT, ori=VEL_PERP, speed=(0.01, 0.01),
-              color=BLACK, le=0.55),
-        Layer("flash_star", "Star", count=2, life=(0.05, 0.1), size=10, dir=FRONT, ori=VEL_PERP, speed=(0.1, 0.1),
-              br=4, le=0.4, z=2.7, color=WHITE, flags=ACCENT),
-        Layer("impact_fb", "Pop", count=1, life=(0.15, 0.15), size=6.5, speed=(10, 10), dir=FRONT, drag=15, br=3, z=2,
-              color=WHITE, flags=ACCENT),
-        Layer("ring_grey", "Ring", count=1, life=(0.12, 0.2), size=12, dir=FRONT, ori=VEL_PERP, speed=(6, 6), drag=10,
-              le=1),
-        Layer("ring_fast", "RingSnap", count=2, life=(0.1, 0.12), size=13, dir=FRONT, ori=VEL_PERP, speed=(0.01, 0.01),
-              le=1),
-        Layer("cresc_spin", "Crescents", count=6, life=(0.12, 0.2), size=7, dir=FRONT, ori=VEL_PERP, speed=(0.03, 0.03),
-              rotspeed=(-800, -550), le=1),
-        Layer("cresc_out", "CrescentsOut", count=5, life=(0.16, 0.3), size=6, dir=FRONT, ori=VEL_PERP, spread=(25, 25),
-              speed=(0, 40)),
-        Layer("shards", "Shards", count=3, life=(0.04, 0.12), size=4, dir=FRONT, spread=(30, 30), speed=(270, 700),
-              drag=44, color=WHITE, flags=ACCENT),
-        Layer("streak", "Streaks", count=10, life=(0.1, 0.3), size=2.2, dir=FRONT, spread=(28, 28), speed=(60, 95),
-              drag=14, color=WHITE, z=1.5),
-        Layer("specs", "Specks", count=7, life=(0.3, 0.6), size=2, dir=FRONT, spread=(40, 40), speed=(18, 40),
-              drag=4.8, color=LIGHT, le=0.6, br=1.5),
-        Layer("smoke_burst", "SmokeBurst", count=4, life=(0.3, 0.6), size=4.5, dir=FRONT, spread=(50, 50),
-              speed=(40, 70), drag=10, accel=(0, 2, 0), color=GREY),
+        Layer("wind_burst", "AirBurst", spread=(0, 0), count=2, life=(0.35, 0.5), size=9, dir=FRONT, ori=VEL_PERP,
+              speed=(0.1, 0.1), color=WHITE, transp=AIR, flags=ACCENT),
+        Layer("wind_swirl", "AirSwirl", count=3, life=(0.35, 0.6), size=7, dir=FRONT, ori=VEL_PERP, spread=(20, 20),
+              speed=(0.05, 0.05), rotspeed=(60, 160), color=WIND_LIGHT, transp=AIR, le=0.3, br=1, flags=ACCENT),
+        Layer("wind_swirl2", "AirSwirl2", spread=(8, 8), count=1, life=(0.4, 0.7), size=8, dir=FRONT, ori=VEL_PERP,
+              speed=(0.05, 0.05), color=WIND_GREY, transp=AIR, flags=ACCENT),
+        Layer("air_shock", "PressureRing", count=2, life=(0.18, 0.28), size=10, dir=FRONT, ori=VEL_PERP,
+              speed=(0.15, 0.15), drag=3.8, color=WHITE, transp=AIR),
+        Layer("air_ring", "AirRing", count=1, life=(0.15, 0.25), size=11, dir=FRONT, ori=VEL_PERP, speed=(5, 5),
+              drag=10, le=0.3, br=1, color=WIND_LIGHT, transp=AIR_SOFT, delay=0.03),
+        Layer("wind_arc", "WindArcs", count=4, life=(0.25, 0.4), size=8, dir=FRONT, ori=VEL_PERP, spread=(15, 15),
+              speed=(0.5, 3), rotspeed=(200, 450), color=WIND_GREY, transp=AIR, le=0.4, br=1),
+        Layer("streak", "AirStreaks", count=7, life=(0.1, 0.25), size=1.8, dir=FRONT, spread=(26, 26),
+              speed=(50, 80), drag=12, color=WIND_LIGHT, transp=STREAK, z=1),
+        Layer("billow", "SmokePuff", count=3, life=(0.5, 1.0), size=4.5, dir=FRONT, spread=(40, 40), speed=(14, 28),
+              drag=7, accel=(0, 1, 0)),
+        Layer("smoke_burst", "DustBurst", count=3, life=(0.3, 0.6), size=4, dir=FRONT, spread=(40, 40),
+              speed=(40, 60), drag=10, accel=(0, 2, 0), color=GREY),
     ]
     ground = [
-        Layer("ring_grey", "DustRing", count=1, life=(0.15, 0.3), size=11, dir=TOP, ori=VEL_PERP, speed=(4, 4), drag=10,
-              le=0.6, color="b8b6b4", flags={"GroundOnly": True}),
+        Layer("wind_fb", "GroundWind", count=1, life=(0.3, 0.6), size=10, dir=TOP, ori=VEL_PERP, speed=(3, 3),
+              rotspeed=(-300, -130), drag=6, flags={"GroundOnly": True}),
+        Layer("air_shock", "GroundRing", count=1, life=(0.2, 0.3), size=10, dir=TOP, ori=VEL_PERP, speed=(0.15, 0.15),
+              drag=3.8, color=WHITE, transp=AIR, flags={"GroundOnly": True}),
         Layer("dust", "DustKick", count=6, life=(0.4, 0.9), size=2.8, dir=FRONT, spread=(5, 70), speed=(14, 32),
               drag=7.4, accel=(0, 1.6, 0), color=GREY, transp=DUST_FADE, flags=GROUND),
     ]
-    return {"name": "M1Final", "layers": {"": hit, "Ground": ground}, "light": (7, 12, 0.18)}
+    return {"name": "M1Final", "layers": {"": hit, "Ground": ground}}
 
 
 def heavy_hit():
-    """Heavy / charged hit: a big contrast flash, black and white eruptions blown out along the hit,
-    stacked rings, spinning crescents, shards, a cone of smoke that hangs, embers and a ground ring."""
+    """Heavy / charged hit: a cone of wind blasted through the target in three waves, big spinning
+    wind and pressure rings, a cone of smoke that hangs in the air, and wind and dust across the floor."""
     hit = [
-        Layer("flash_big", "Flash", count=1, life=(0.15, 0.15), size=18, br=20, z=8, color=WHITE, flags=ACCENT),
-        Layer("flash_short", "FlashCore", count=1, life=(0.08, 0.08), size=12, br=25, z=6, color=WHITE),
-        Layer("black_flat", "BlackFrame", count=2, life=(0.1, 0.22), size=16, dir=FRONT, ori=VEL_PERP,
-              speed=(1.2, 1.2), color=BLACK, le=0.55),
-        Layer("flash_star", "Star", count=3, life=(0.05, 0.12), size=16, dir=FRONT, ori=VEL_PERP, speed=(0.1, 0.1),
-              br=4, le=0.4, z=2.7, color=WHITE, flags=ACCENT),
-        Layer("impact_fb_flat", "Burst", count=1, life=(0.1, 0.1), size=9, dir=FRONT, ori=VEL_PERP, speed=(0.01, 0.01),
-              br=12, le=1, z=2, color=WHITE, flags=ACCENT),
-        Layer("ring_grey", "Ring", count=2, life=(0.15, 0.3), size=18, dir=FRONT, ori=VEL_PERP, speed=(6, 6), drag=10,
-              le=1),
-        Layer("ring_fast", "RingSnap", count=2, life=(0.1, 0.14), size=18, dir=FRONT, ori=VEL_PERP, speed=(0.01, 0.01),
-              le=1),
-        Layer("ring_3", "RingWide", count=2, life=(0.2, 0.3), size=14, dir=FRONT, ori=VEL_PERP, speed=(0.3, 0.3), le=1,
-              br=0.6, delay=0.03),
-        Layer("ring_spin", "RingSpin", count=1, life=(0.4, 0.5), size=12, dir=FRONT, ori=VEL_PERP, speed=(0.2, 0.2),
-              color=("cfcfcf", "434343")),
-        Layer("cresc_spin", "Crescents", count=10, life=(0.12, 0.22), size=9, dir=FRONT, ori=VEL_PERP,
-              speed=(0.03, 0.03), rotspeed=(-800, -550), le=1),
-        Layer("cresc_out", "CrescentsOut", count=8, life=(0.16, 0.32), size=8, dir=FRONT, ori=VEL_PERP, spread=(25, 25),
-              speed=(0, 70)),
-        Layer("stretch_flash", "Eruption", count=2, life=(0.06, 0.14), size=14, dir=FRONT, spread=(10, 10),
-              speed=(40, 140), drag=13, color=WHITE),
-        Layer("shards", "Shards", count=5, life=(0.04, 0.14), size=5, dir=FRONT, spread=(35, 35), speed=(300, 1000),
-              drag=44, color=WHITE, flags=ACCENT),
-        Layer("streak", "Streaks", count=14, life=(0.1, 0.35), size=2.8, dir=FRONT, spread=(30, 30), speed=(70, 110),
-              drag=14, color=WHITE, z=1.5),
-        Layer("ember", "Embers", count=6, life=(0.05, 0.25), size=6, dir=FRONT, spread=(40, 40), speed=(80, 300),
-              drag=25, color=WHITE, br=6, flags=ACCENT),
-        Layer("smoke_burst", "SmokeBurst", count=6, life=(0.4, 0.9), size=6.5, dir=FRONT, spread=(45, 45),
+        Layer("wind_burst", "AirBurst", spread=(0, 0), count=1, life=(0.4, 0.6), size=14, dir=FRONT, ori=VEL_PERP,
+              speed=(0.1, 0.1), color=WHITE, transp=AIR, flags=ACCENT),
+        Layer("wind_burst", "AirBurst2", spread=(0, 0), count=1, life=(0.4, 0.6), size=12, dir=FRONT, ori=VEL_PERP,
+              speed=(0.1, 0.1), color=WHITE, transp=AIR, delay=0.03, flags=ACCENT),
+        Layer("wind_burst", "AirBurst3", spread=(0, 0), count=1, life=(0.4, 0.6), size=10, dir=FRONT, ori=VEL_PERP,
+              speed=(0.1, 0.1), color=WHITE, transp=AIR, delay=0.06, flags=ACCENT),
+        Layer("wind_big", "WindSpin", count=2, life=(0.15, 0.4), size=16, dir=FRONT, ori=VEL_PERP, speed=(3, 3),
+              rotspeed=(500, 1500), drag=6, transp=AIR, flags=ACCENT),
+        Layer("wind_swirl", "AirSwirl", count=4, life=(0.4, 0.7), size=10, dir=FRONT, ori=VEL_PERP, spread=(20, 20),
+              speed=(0.05, 0.05), rotspeed=(60, 160), color=WIND_LIGHT, transp=AIR, le=0.3, br=1, flags=ACCENT),
+        Layer("wind_crescent", "WindCrescents", spread=(8, 8), count=2, life=(0.4, 0.8), size=10, dir=FRONT, ori=VEL_PERP,
+              speed=(0.05, 0.05), color=WIND_GREY, transp=AIR),
+        Layer("air_shock", "PressureRing", count=2, life=(0.2, 0.3), size=14, dir=FRONT, ori=VEL_PERP,
+              speed=(0.15, 0.15), drag=3.8, color=WHITE, transp=AIR),
+        Layer("air_shock_fb", "PressureWave", count=1, life=(0.4, 0.6), size=16, dir=FRONT, ori=VEL_PERP,
+              speed=(0.5, 0.5), transp=AIR),
+        Layer("air_ring", "AirRing", count=2, life=(0.18, 0.32), size=18, dir=FRONT, ori=VEL_PERP, speed=(6, 6),
+              drag=10, le=0.3, br=1, color=WIND_LIGHT, transp=AIR_SOFT, delay=0.03),
+        Layer("wind_arc", "WindArcs", count=6, life=(0.3, 0.5), size=12, dir=FRONT, ori=VEL_PERP, spread=(20, 20),
+              speed=(1, 5), rotspeed=(200, 500), color=WIND_GREY, transp=AIR, le=0.4, br=1),
+        Layer("streak", "AirStreaks", count=10, life=(0.12, 0.3), size=2.4, dir=FRONT, spread=(28, 28),
+              speed=(60, 100), drag=12, color=WIND_LIGHT, transp=STREAK, z=1),
+        Layer("smoke_burst", "SmokeCone", count=6, life=(0.4, 0.9), size=6.5, dir=FRONT, spread=(45, 45),
               speed=(70, 110), drag=10, accel=(0, 2, 0), color=GREY),
-        Layer("smoke_linger", "SmokeHang", count=4, life=(0.8, 1.6), size=6, dir=FRONT, spread=(60, 60), speed=(4, 25),
+        Layer("billow", "SmokeBillow", count=4, life=(0.6, 1.4), size=6, dir=FRONT, spread=(50, 50), speed=(15, 35),
+              drag=7, accel=(0, 1, 0)),
+        Layer("smoke_linger", "Haze", count=4, life=(0.8, 1.6), size=6, dir=FRONT, spread=(60, 60), speed=(4, 25),
               drag=3, color=DARK, delay=0.04),
     ]
     ground = [
-        Layer("ring_grey", "DustRing", count=1, life=(0.2, 0.35), size=18, dir=TOP, ori=VEL_PERP, speed=(6, 6), drag=10,
-              le=0.6, color="b8b6b4", flags={"GroundOnly": True}),
         Layer("wind_spin2", "GroundWind", count=2, life=(0.2, 0.6), size=16, dir=TOP, ori=VEL_PERP, speed=(4, 4),
               drag=6, rotspeed=(108, 266), flags={"GroundOnly": True}),
+        Layer("wind_spin", "GroundWind2", count=2, life=(0.15, 0.5), size=14, dir=TOP, ori=VEL_PERP, speed=(7, 20),
+              rotspeed=(130, 900), drag=6, flags={"GroundOnly": True}),
+        Layer("air_shock", "GroundRing", count=1, life=(0.2, 0.35), size=16, dir=TOP, ori=VEL_PERP,
+              speed=(0.15, 0.15), drag=3.8, color=WHITE, transp=AIR, flags={"GroundOnly": True}),
         Layer("dust", "DustKick", count=8, life=(0.5, 1.1), size=3.4, dir=FRONT, spread=(8, 80), speed=(18, 40),
               drag=7.4, accel=(0, 1.6, 0), color=GREY, transp=DUST_FADE, flags=GROUND),
         Layer("rock", "Pebbles", count=8, life=(0.4, 0.9), size=0.3, dir=TOP, spread=(40, 40), speed=(18, 40),
               drag=3, accel=(0, -60, 0), flags=GROUND),
     ]
-    return {"name": "HeavyHit", "layers": {"": hit, "Ground": ground}, "light": (10, 18, 0.25)}
+    return {"name": "HeavyHit", "layers": {"": hit, "Ground": ground}}
 
 
 def ground_slam():
-    """Ground slam: a flash and black contrast frame on contact, shockwave rings racing out across
-    the floor, wind swirling flat over the ground, a radial wall of smoke, dirt and rocks thrown up
-    and raining down, cracks and a scorch left behind, and dust that hangs for a few seconds."""
-    air = [
-        Layer("flash_big", "Flash", count=1, life=(0.15, 0.15), size=24, br=25, z=11, color=WHITE, flags=ACCENT),
-        Layer("flash_short", "FlashCore", count=1, life=(0.083, 0.083), size=18, br=30, z=3, color=WHITE),
-        Layer("glow", "Glow", count=1, life=(0.6, 0.6), size=(([0, 16, 0], [1, 20, 0])), le=1, br=2, z=4,
-              color=LIGHT, flags=ACCENT),
-        Layer("stretch_flash", "Eruption", count=3, life=(0.08, 0.16), size=16, dir=TOP, spread=(15, 15),
-              speed=(40, 141), drag=13, color=WHITE),
-        Layer("streak_fast", "Spikes", count=4, life=(0.1, 0.2), size=5, dir=TOP, spread=(20, 20), speed=(140, 300),
-              drag=7, color=WHITE),
-        Layer("shards", "Shards", count=6, life=(0.04, 0.14), size=5, dir=TOP, spread=(70, 70), speed=(300, 900),
-              drag=44, color=WHITE, flags=ACCENT),
-        Layer("ember", "Embers", count=8, life=(0.05, 0.28), size=7, dir=TOP, spread=(70, 70), speed=(75, 300),
-              drag=25, color=WHITE, br=6, flags=ACCENT),
-    ]
+    """Ground slam: the air blasts out flat across the floor (spinning wind, wind bursts and soft
+    pressure rings racing outward), a radial wall of smoke and dust, billows rolling up, dirt and
+    rocks thrown up and raining down, cracks and a scorch, and dust that hangs for a few seconds."""
     ground = [
-        Layer("black_flat", "BlackFrame", count=2, life=(0.13, 0.3), size=24, dir=TOP, ori=VEL_PERP, speed=(1.2, 1.2),
-              color=BLACK, le=0.55),
-        Layer("flash_flat", "FlatFlash", count=3, life=(0.1, 0.13), size=19, dir=TOP, ori=VEL_PERP, br=30, z=3,
-              color=WHITE, flags=ACCENT),
-        Layer("ring_fast", "RingSnap", count=2, life=(0.12, 0.12), size=24, dir=TOP, ori=VEL_PERP, le=1),
-        Layer("ring_grey", "Ring1", count=1, life=(0.1, 0.25), size=27, dir=TOP, ori=VEL_PERP, speed=(6, 6), drag=10,
-              le=1),
-        Layer("ring_grey", "Ring2", count=1, life=(0.15, 0.3), size=25, dir=TOP, ori=VEL_PERP, speed=(6, 6), drag=10,
-              le=1, delay=0.05),
-        Layer("ring_grey", "Ring3", count=1, life=(0.35, 0.35), size=23, dir=TOP, ori=VEL_PERP, speed=(8, 8), drag=10,
-              le=1, delay=0.1),
-        Layer("ring_linger", "RingLinger", count=1, life=(0.75, 1.1), size=14, ori=CAM, le=1, br=0.1),
-        Layer("ring_spin", "RingSpin", count=1, life=(0.57, 0.57), size=17, dir=TOP, ori=VEL_PERP, speed=(0.2, 0.2),
-              color=("b3b3b3", "434343")),
+        Layer("wind_burst", "AirBlast", spread=(0, 0), count=2, life=(0.4, 0.6), size=24, dir=TOP, ori=VEL_PERP, speed=(0.1, 0.1),
+              color=WHITE, transp=AIR, flags=ACCENT),
         Layer("wind_fb", "Wind1", count=4, life=(0.15, 0.6), size=26, dir=TOP, ori=VEL_PERP, speed=(6.8, 6.8),
-              rotspeed=(-444, -130), drag=6),
+              rotspeed=(-444, -130), drag=6, flags=ACCENT),
         Layer("wind_spin", "Wind2", count=3, life=(0.15, 0.58), size=23, dir=TOP, ori=VEL_PERP, speed=(7, 30),
               rotspeed=(130, 1350), drag=6),
         Layer("wind_spin2", "Wind3", count=2, life=(0.2, 0.8), size=25, dir=TOP, ori=VEL_PERP, speed=(6.8, 6.8),
               rotspeed=(108, 266), drag=6),
-        Layer("wind_flip", "WindFlip", count=3, life=(0.4, 1.3), size=11, dir=TOP, ori=VEL_PERP, spread=(360, 360),
-              speed=(0.05, 0.05), drag=5),
+        Layer("wind_big", "WindBig", count=2, life=(0.15, 0.4), size=22, dir=TOP, ori=VEL_PERP, speed=(3, 3),
+              rotspeed=(500, 1500), drag=6, transp=AIR),
+        Layer("wind_swirl", "WindSwirl", count=3, life=(0.4, 1.3), size=12, dir=TOP, ori=VEL_PERP, spread=(360, 360),
+              speed=(0.05, 0.05), drag=5, transp=AIR_SOFT),
+        Layer("air_shock", "PressureRing", count=2, life=(0.2, 0.35), size=22, dir=TOP, ori=VEL_PERP,
+              speed=(0.15, 0.15), drag=3.8, color=WHITE, transp=AIR),
+        Layer("air_ring", "AirRing1", count=1, life=(0.1, 0.25), size=27, dir=TOP, ori=VEL_PERP, speed=(6, 6), drag=10,
+              le=0.3, br=1, color=WIND_LIGHT, transp=AIR_SOFT),
+        Layer("air_ring", "AirRing2", count=1, life=(0.15, 0.3), size=25, dir=TOP, ori=VEL_PERP, speed=(6, 6),
+              drag=10, le=0.3, br=1, color=WIND_LIGHT, transp=AIR_SOFT, delay=0.05),
         Layer("smoke_burst", "SmokeWall", count=10, life=(0.4, 0.9), size=6.4, dir=FRONT, spread=(0, 360),
               speed=(84, 110), drag=10, accel=(0, -4, 0), color=GREY, flags=GROUND),
         Layer("smoke_fast", "SmokeWallFast", count=6, life=(0.2, 0.35), size=5, dir=FRONT, spread=(0, 360),
               speed=(70, 130), drag=10, color=GREY, flags=GROUND),
         Layer("billow", "Billow", count=5, life=(0.5, 1.6), size=4.5, dir=TOP, spread=(60, 60), speed=(15, 37),
               drag=7, accel=(0, -6.7, 0), flags=GROUND),
+        Layer("cloud", "DustCloud", count=3, life=(0.4, 1.4), size=5.5, dir=FRONT, spread=(0, 360), speed=(9, 38),
+              drag=7, accel=(0, -4, 0), flags=GROUND),
         Layer("smoke_linger", "DustHang", count=10, life=(1.8, 4), size=10, dir=FRONT, spread=(0, 360),
               speed=(4, 40), drag=3, color=DARK, delay=0.05, flags=GROUND),
         Layer("dirt", "Dirt", count=9, life=(0.4, 1.2), size=5, dir=TOP, spread=(60, 60), speed=(40, 85), drag=10,
@@ -482,30 +446,28 @@ def ground_slam():
         Layer("crack_fb", "Cracks", count=1, life=(2, 2), size=13, dir=TOP, ori=VEL_PERP, flags={"GroundOnly": True}),
         Layer("crack", "CracksOuter", count=1, life=(1.5, 1.5), size=(([0, 6, 0], [1, 14, 0])), dir=TOP, ori=VEL_PERP,
               flags={"GroundOnly": True}),
-        Layer("scorch", "Scorch", count=1, life=(1.4, 1.4), size=6, dir=TOP, ori=VEL_PERP, flags={"GroundOnly": True}),
+        Layer("scorch", "Scorch", count=1, life=(1.4, 1.4), size=6, dir=TOP, ori=VEL_PERP, br=1, le=0,
+              flags={"GroundOnly": True}),
     ]
-    return {"name": "GroundSlam", "layers": {"Air": air, "Ground": ground}, "air_height": 1.5, "ground_offset": 0,
-            "light": (12, 26, 0.3)}
+    return {"name": "GroundSlam", "layers": {"Ground": ground}, "ground_offset": 0}
 
 
 def dash_burst():
-    """Start of a dash, aimed along the dash: the air snaps behind the body in stretched flashes and
-    speed streaks, and the ground under the feet kicks up a ring, a swirl and a spray of dust."""
+    """Start of a dash, aimed along the dash: a gust of wind tears off behind the body (a wind burst,
+    swirls, wind arcs and air streaks) and the ground under the feet kicks up a ring of wind and dust."""
     body = [
-        Layer("stretch_flash", "Snap", count=2, life=(0.05, 0.15), size=10, dir=BACK, spread=(20, 20),
-              speed=(1, 120), drag=13, color=LIGHT),
-        Layer("streak_5", "Streaks", count=5, life=(0.04, 0.25), size=3, dir=BACK, spread=(10, 10), speed=(20, 120),
-              drag=13, color=LIGHT),
-        Layer("streak_fast", "LongStreaks", count=2, life=(0.1, 0.18), size=4, dir=BACK, spread=(4, 4),
-              speed=(140, 380), drag=7, color=WHITE),
-        Layer("streak_big", "Whoosh", count=1, life=(0.1, 0.1), size=7, dir=BACK, speed=(220, 220), drag=9,
-              color=LIGHT),
-        Layer("cresc_spin", "Crescents", count=2, life=(0.1, 0.16), size=5, dir=BACK, ori=VEL_PERP, speed=(0.02, 0.02),
-              rotspeed=(-800, -550), le=1),
+        Layer("wind_burst", "Gust", spread=(0, 0), count=1, life=(0.3, 0.45), size=7, dir=BACK, ori=VEL_PERP, speed=(0.1, 0.1),
+              color=WHITE, transp=AIR, flags=ACCENT),
+        Layer("wind_swirl", "GustSwirl", count=2, life=(0.3, 0.5), size=6, dir=BACK, ori=VEL_PERP, spread=(15, 15),
+              speed=(0.05, 0.05), rotspeed=(60, 140), color=WIND_LIGHT, transp=AIR, le=0.3, br=1, flags=ACCENT),
+        Layer("wind_arc", "WindArcs", count=3, life=(0.2, 0.35), size=6, dir=BACK, ori=VEL_PERP, speed=(1, 4),
+              rotspeed=(-400, -200), color=WIND_GREY, transp=AIR, le=0.4, br=1),
+        Layer("streak", "AirStreaks", count=5, life=(0.1, 0.22), size=2, dir=BACK, spread=(10, 10), speed=(30, 70),
+              drag=10, color=WIND_LIGHT, transp=STREAK),
     ]
     ground = [
-        Layer("ring_grey", "Ring", count=1, life=(0.12, 0.22), size=10, dir=TOP, ori=VEL_PERP, speed=(4, 4), drag=10,
-              le=0.6, color="b8b6b4", flags={"GroundOnly": True}),
+        Layer("air_shock", "Ring", count=1, life=(0.18, 0.26), size=9, dir=TOP, ori=VEL_PERP, speed=(0.15, 0.15),
+              drag=3.8, color=WHITE, transp=AIR, flags={"GroundOnly": True}),
         Layer("wind_spin2", "Swirl", count=1, life=(0.2, 0.45), size=9, dir=TOP, ori=VEL_PERP, speed=(4, 4), drag=6,
               rotspeed=(108, 266), flags={"GroundOnly": True}),
         Layer("dust", "DustKick", count=7, life=(0.35, 0.9), size=3.2, dir=BACK, spread=(15, 40), speed=(17, 40), drag=5,
@@ -519,12 +481,13 @@ def dash_burst():
 
 
 def dash_trail():
-    """While dashing (Start/Stop): wind streaks pour off the body and dust trails off the feet."""
+    """While dashing (Start/Stop): wind arcs and faint air streaks pour off the body, dust trails off
+    the feet."""
     body = [
-        Layer("streak", "Streaks", continuous=True, rate=40, life=(0.1, 0.22), size=2, dir=BACK, spread=(8, 8),
-              speed=(25, 45), drag=8, color=LIGHT, z=1),
+        Layer("streak", "AirStreaks", continuous=True, rate=25, life=(0.1, 0.22), size=1.8, dir=BACK, spread=(8, 8),
+              speed=(25, 45), drag=8, color=WIND_LIGHT, transp=STREAK, z=1),
         Layer("wind_arc", "WindArcs", continuous=True, rate=8, life=(0.15, 0.3), size=6, dir=BACK, ori=VEL_PERP,
-              speed=(1, 4), rotspeed=(-240, -24), transp=[[0, 0.6, 0], [1, 1, 0]]),
+              speed=(1, 4), rotspeed=(-240, -24), color=WIND_GREY, transp=AIR, flags=ACCENT),
     ]
     feet = [
         Layer("dust", "Dust", continuous=True, rate=22, life=(0.3, 0.7), size=2.2, dir=BACK, spread=(20, 30),
@@ -547,11 +510,13 @@ def footstep():
 
 
 def land():
-    """Landing from a fall: dust blown out to both sides, a ring, grit and downward speed lines,
-    copied from the reference ImpactFeet (scale with the fall using the Scale option)."""
+    """Landing from a fall: a ring of air and a swirl of wind across the floor, dust blown out to
+    both sides and grit (scale it with the fall using the Scale option)."""
     ground = [
-        Layer("ring_grey", "Ring", count=1, life=(0.12, 0.25), size=9, dir=TOP, ori=VEL_PERP, speed=(4, 4), drag=10,
-              le=0.6, color="b8b6b4", flags={"GroundOnly": True}),
+        Layer("air_shock", "Ring", count=1, life=(0.18, 0.28), size=9, dir=TOP, ori=VEL_PERP, speed=(0.15, 0.15),
+              drag=3.8, color=WHITE, transp=AIR, flags={"GroundOnly": True}),
+        Layer("wind_swirl", "Swirl", count=1, life=(0.3, 0.6), size=8, dir=TOP, ori=VEL_PERP, speed=(0.05, 0.05),
+              rotspeed=(60, 140), color=WIND_LIGHT, transp=AIR, flags={"GroundOnly": True}),
         Layer("dust", "DustLeft", count=6, life=(0.5, 0.9), size=3.2, dir=LEFT, spread=(0, 100), speed=(25, 40),
               drag=7.4, accel=(0, 1.6, 0), color=GREY, transp=DUST_FADE, flags=GROUND),
         Layer("dust", "DustRight", count=6, life=(0.5, 0.9), size=3.2, dir=RIGHT, spread=(0, 100), speed=(25, 40),
@@ -560,25 +525,21 @@ def land():
               accel=(0, 0.8, 0), color=GREY, transp=DUST_FADE, flags=GROUND),
         Layer("rock", "Grit", count=6, life=(0.3, 0.9), size=0.14, dir=TOP, spread=(33, 33), speed=(8, 25), drag=3,
               accel=(0, -17.5, 0), flags=GROUND),
-        Layer("land_lines", "Lines", count=8, life=(0.1, 0.3), size=2.4, dir=TOP, spread=(10, 180), speed=(50, 70),
-              drag=8.9, flags={"GroundOnly": True}),
     ]
     return {"name": "Land", "layers": {"Ground": ground}, "ground_offset": 0}
 
 
 def jump():
-    """Take-off: a ring and a puff pushed down and out from the feet, and a short upward whoosh."""
+    """Take-off: a ring of air and a swirl pushed out under the feet, and a puff of dust."""
     ground = [
-        Layer("ring_grey", "Ring", count=1, life=(0.1, 0.2), size=7, dir=TOP, ori=VEL_PERP, speed=(4, 4), drag=10,
-              le=0.6, color="b8b6b4", flags={"GroundOnly": True}),
+        Layer("air_shock", "Ring", count=1, life=(0.15, 0.25), size=7, dir=TOP, ori=VEL_PERP, speed=(0.15, 0.15),
+              drag=3.8, color=WHITE, transp=AIR, flags={"GroundOnly": True}),
+        Layer("wind_spin2", "Swirl", count=1, life=(0.2, 0.4), size=7, dir=TOP, ori=VEL_PERP, speed=(4, 4), drag=6,
+              rotspeed=(108, 266), flags={"GroundOnly": True}),
         Layer("dust", "Puff", count=5, life=(0.3, 0.6), size=2.4, dir=FRONT, spread=(5, 360), speed=(10, 20), drag=7,
               accel=(0, 1, 0), color=GREY, transp=DUST_FADE, flags=GROUND),
     ]
-    body = [
-        Layer("streak_5", "Whoosh", count=3, life=(0.05, 0.15), size=2.2, dir=BOTTOM, spread=(12, 12), speed=(30, 80),
-              drag=13, color=LIGHT),
-    ]
-    return {"name": "Jump", "layers": {"": body, "Ground": ground}, "ground_offset": 0}
+    return {"name": "Jump", "layers": {"Ground": ground}, "ground_offset": 0}
 
 
 def slide_dust():
