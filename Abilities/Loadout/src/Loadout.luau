@@ -95,6 +95,54 @@ Loadout.Abilities = {
 		Name = "Portal Burst",
 		Hint = "Both fists into the floor: fists burst up from a ring of warp holes, launching everyone near you.",
 	},
+	Haymaker = {
+		Kit = "Brawler",
+		Character = "Brawler",
+		Name = "Haymaker",
+		Hint = "A wide, heavy right hook, stepping in. Knocks them flying.",
+	},
+	Uppercut = {
+		Kit = "Brawler",
+		Character = "Brawler",
+		Name = "Uppercut",
+		Hint = "Drop low and drive a fist up through the chin: launches them.",
+	},
+	Roundhouse = {
+		Kit = "Brawler",
+		Character = "Brawler",
+		Name = "Roundhouse",
+		Hint = "A spinning kick at head height that sweeps wide and knocks them aside.",
+	},
+	AxeKick = {
+		Kit = "Brawler",
+		Character = "Brawler",
+		Name = "Axe Kick",
+		Hint = "The leg straight up and the heel dropped: can't be parried, and crushes a guard.",
+	},
+	GroundSlam = {
+		Kit = "Brawler",
+		Character = "Brawler",
+		Name = "Ground Slam",
+		Hint = "Hop and hammer both fists into the floor, launching everyone round you.",
+	},
+	GrabThrow = {
+		Kit = "Brawler",
+		Character = "Brawler",
+		Name = "Grab & Throw",
+		Hint = "Grab them by the collar, swing them round and hurl them. Grabs beat blocks.",
+	},
+	Suplex = {
+		Kit = "Brawler",
+		Character = "Brawler",
+		Name = "Suplex",
+		Hint = "Grab them round the waist and spike them over your head behind you.",
+	},
+	Chokeslam = {
+		Kit = "Brawler",
+		Character = "Brawler",
+		Name = "Chokeslam",
+		Hint = "Lift them by the throat and slam them flat on their back in front of you.",
+	},
 } :: { [string]: Ability }
 
 -- the order the menu lists them in, by character
@@ -110,14 +158,24 @@ Loadout.Order = {
 	"RemoteJab",
 	"WarpBarrage",
 	"PortalBurst",
+	"Haymaker",
+	"Uppercut",
+	"Roundhouse",
+	"AxeKick",
+	"GroundSlam",
+	"GrabThrow",
+	"Suplex",
+	"Chokeslam",
 }
 
 Loadout.Presets = {
 	Gon = { "Rock", "Paper", "Scissors", "" },
 	Killua = { "LightningPalm", "Thunderbolt", "Whirlwind", "LightningDash" },
 	Leorio = { "WarpPunch", "RemoteJab", "WarpBarrage", "PortalBurst" },
+	Striker = { "Haymaker", "Uppercut", "Roundhouse", "AxeKick" },
+	Grappler = { "GrabThrow", "Suplex", "Chokeslam", "GroundSlam" },
 }
-Loadout.PresetOrder = { "Gon", "Killua", "Leorio" }
+Loadout.PresetOrder = { "Gon", "Killua", "Leorio", "Striker", "Grappler" }
 Loadout.Default = "Killua"
 
 --------------------------------------------------------------------------- reading and writing

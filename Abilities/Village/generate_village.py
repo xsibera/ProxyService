@@ -565,6 +565,7 @@ def training_yard(rig_source):
         ("Melee", "MeleeRig.rbxmx"),
         ("Movement", "MovementRig.rbxmx"),
         ("Leorio", "LeorioRig.rbxmx"),
+        ("Brawler", "BrawlerRig.rbxmx"),
     )):
         rig = jajanken.built(os.path.join(package, "build", file))
         if rig is not None:

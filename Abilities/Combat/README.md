@@ -21,7 +21,7 @@ The rules every ability's hits go through, for a parry-style fight. The kits ([M
   - Whirlwind's counter can't be blocked or parried.
   - Lightning Dash strikes come from where Killua started the dash.
 
-You see **PARRY**, **PARRIED** or **GUARD BROKEN** on screen when it happens to you, and everyone sees sparks for parries, blocks and guard breaks. Reactions play on whoever is hit: a recoil, the electrocuted jitter for a Shock, a stagger for a guard break or a parry. They play on NPCs too, so the test dummies react.
+You see **PARRY**, **PARRIED** or **GUARD BROKEN** on screen when it happens to you, and everyone sees sparks for parries, blocks and guard breaks. Reactions play on whoever is hit: a recoil, the electrocuted jitter for a Shock, a stagger for a guard break or a parry. They play on NPCs too, so the test dummies react. Two kinds of stun play no reaction, because the kit that caused them animates the body itself: `Grabbed` and `Knockdown` (the Brawler's grabs, throws and getting back up).
 
 ## Files
 
@@ -63,7 +63,8 @@ local outcome = Combat.resolve(attackerModel, victimModel, {
 	Ability = "MyPunch",
 	Knockback = look * 30,      -- on a clean hit
 	Stun = 0.4,
-	StunKind = "Hit",          -- "Hit" | "Shock" | "Launch" | ...: picks the reaction animation
+	StunKind = "Hit",          -- "Hit" | "Shock" | "Launch" | ...: picks the reaction animation ("Grabbed"
+	                           -- and "Knockdown" play none: the kit animates those)
 	GuardDamage = 20,          -- default 2 x Damage
 	GuardBreak = false,        -- true: breaks a block outright
 	Parryable = true, Blockable = true, Counterable = true,
@@ -114,4 +115,4 @@ The ability place's **training dummies** (`Village/src/DummyBrains.server.luau`)
 
 Tests (`luaurun`, from this folder):
 - `tests/server.luau`, 61 checks: the rules, the F key's parry and cooldown rules, and guard regeneration.
-- `tests/client.luau`, 29 checks: the F key, the block pose, every reaction, NPC reactions, the guard bar, the words and the effects.
+- `tests/client.luau`, 30 checks: the F key, the block pose, every reaction, NPC reactions, the guard bar, the words and the effects.

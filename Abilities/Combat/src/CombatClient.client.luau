@@ -35,6 +35,8 @@ local REACTION = {
 	Countered = "Hit",
 }
 local LOOPED = { Block = true, Shocked = true }
+-- stuns a kit animates itself (a grab: the Brawler plays the held body and the getting up)
+local KIT_ANIMATED = { Grabbed = true, Knockdown = true }
 
 --------------------------------------------------------------------------- animations
 
@@ -233,6 +235,14 @@ local function animate(character: Model, mine: boolean): { RBXScriptConnection }
 			return
 		end
 		local kind = character:GetAttribute("StunKind")
+		if typeof(kind) == "string" and KIT_ANIMATED[kind] then
+			if reacting then
+				stop(tracks, reacting, 0.05)
+				reacting = nil
+			end
+			stop(tracks, "Block", 0.05)
+			return
+		end
 		local name = REACTION[if typeof(kind) == "string" then kind else "Hit"] or "Hit"
 		if reacting and reacting ~= name then
 			stop(tracks, reacting, 0.05)

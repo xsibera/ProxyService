@@ -104,16 +104,18 @@ def leg_tilt(joint, root, ch):
 
 def check_legs(c, baked):
     """The legs as the reference ability animations have them, in every frame of a clip that keys
-    them: the feet never come within MIN_FEET_GAP of each other side to side (no crossing), and
+    them: planted feet never come within MIN_FEET_GAP of each other side to side (no crossing; a
+    kicking foot up in the air may cross over), and
     while both feet are on the floor at least one leg stands nearly upright (MAX_SUPPORT_TILT; the
     reference's never leans past 24 deg) - no splayed A-frame stances."""
     if "LLeg" not in baked:
         return
     for f in range(len(baked["Root"])):
-        gap = feet_gap(baked, f)
-        assert gap >= MIN_FEET_GAP, "%s: the feet come %.2f studs apart at f%d (crossing)" % (c.name, gap, f)
         tilts = [leg_tilt(j, baked["Root"][f], baked[j][f]) for j in ("LLeg", "RLeg")]
         grounded = all(foot[1] < GROUND + 0.1 for _, foot in tilts)
+        gap = feet_gap(baked, f)
+        assert gap >= MIN_FEET_GAP or not all(foot[1] < GROUND + 0.3 for _, foot in tilts), (
+            "%s: the feet come %.2f studs apart at f%d (crossing)" % (c.name, gap, f))
         upright = min(t for t, _ in tilts)
         assert not grounded or upright <= MAX_SUPPORT_TILT, "%s: both legs lean %.0f+ deg at f%d (splayed)" % (
             c.name, upright, f)

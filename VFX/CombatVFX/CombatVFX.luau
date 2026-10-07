@@ -11,18 +11,19 @@
 		HumanoidRootPart) until handle:Stop(). Its "Ground" attachment follows the floor under the part.
 
 	CombatVFX.Swing(kind, character, track?, options?) -> handle
-		Swing visualisation for an M1, "SwordSwing" or "FistSwing": a trail behind the blade / the
-		punching fist, air pulled along behind it, and a burst of air at the fastest point of the
-		swing (SwordCut, SwordThrust for stabs, FistPush). Call it when the attack animation starts
-		and pass its AnimationTrack: it watches until the track stops (or options.Duration seconds
-		without one). The motion drives it: trails only show while the blade / fist moves fast
-		relative to the body, so wind-ups, recoveries, walking and turning leave none. The sword
-		needs two attachments in the blade, SwingBase and SwingTip (else a part named Blade is used).
+		Swing visualisation for an M1, "SwordSwing", "FistSwing" or "KickSwing": a trail behind the
+		blade / the punching fist / the kicking foot, air pulled along behind it, and a burst of air
+		at the fastest point of the swing (SwordCut, SwordThrust for stabs, FistPush, KickPush). Call
+		it when the attack animation starts and pass its AnimationTrack: it watches until the track
+		stops (or options.Duration seconds without one). The motion drives it: trails only show while
+		the blade / fist / foot moves fast relative to the body, so wind-ups, recoveries, walking and
+		turning leave none. The sword needs two attachments in the blade, SwingBase and SwingTip (else
+		a part named Blade is used).
 
 	CombatVFX.WatchSwings(animations, characters?) -> handle
 		Calls Swing for you: whenever a player's character (or one of `characters`) plays one of
-		`animations` ({ [animation id or Animation name] = "SwordSwing" | "FistSwing" }) on this
-		client, other players' replicated animations included. Run it once in a LocalScript.
+		`animations` ({ [animation id or Animation name] = "SwordSwing" | "FistSwing" | "KickSwing" })
+		on this client, other players' replicated animations included. Run it once in a LocalScript.
 
 	options (all optional):
 		Color: Color3        recolours the Accent emitters and trails (the move's colour)
@@ -377,6 +378,21 @@ local function findFist(character: Model, side: string): (BasePart?, Vector3, Mo
 	return arm, fist, if joint and joint:IsA("Motor6D") then joint else nil
 end
 
+-- a leg's foot (the bottom of an R6 leg; an R15 foot) and its hip joint
+local function findFoot(character: Model, side: string): (BasePart?, Vector3, Motor6D?)
+	local leg = character:FindFirstChild(side .. " Leg")
+	local joint = character:FindFirstChild(side .. " Hip", true)
+	if not (leg and leg:IsA("BasePart")) then
+		leg = character:FindFirstChild(side .. "Foot")
+		joint = character:FindFirstChild(side .. "Hip", true)
+	end
+	if not (leg and leg:IsA("BasePart")) then
+		return nil, Vector3.zero, nil
+	end
+	local foot = if leg.Name == side .. " Leg" then Vector3.new(0, -leg.Size.Y / 2, 0) else Vector3.zero
+	return leg, foot, if joint and joint:IsA("Motor6D") then joint else nil
+end
+
 local function socket(joint: Motor6D): Vector3?
 	local part0 = joint.Part0
 	return if part0 then part0.CFrame * joint.C0.Position else nil
@@ -498,10 +514,11 @@ local function newSwing(kind: string, character: Model, options: Options?): Swin
 		end
 		table.insert(points, makePoint(effect, part, base, tip, nil, true, created))
 	else
+		local find = if effect:GetAttribute("Kind") == "Kick" then findFoot else findFist
 		for _, side in { "Right", "Left" } do
-			local arm, fist, shoulder = findFist(character, side)
-			if arm then
-				table.insert(points, makePoint(effect, arm, fist, fist, shoulder, false, created))
+			local limb, tip, joint = find(character, side)
+			if limb then
+				table.insert(points, makePoint(effect, limb, tip, tip, joint, false, created))
 			end
 		end
 	end
@@ -574,8 +591,8 @@ local function newSwing(kind: string, character: Model, options: Options?): Swin
 				stop(point)
 			end
 		else
-			-- one fist at a time: the one moving fastest while reaching out (the guard hand gets
-			-- carried along by the body's turn, but it pulls in)
+			-- one fist (or foot) at a time: the one moving fastest while reaching out (the guard hand
+			-- gets carried along by the body's turn, but it pulls in; the standing foot stays put)
 			local active: SwingPoint? = nil
 			for _, point in points do
 				if point.mode then

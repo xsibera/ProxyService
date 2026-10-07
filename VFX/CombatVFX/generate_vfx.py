@@ -661,6 +661,27 @@ def fist_swing():
     return {"name": "FistSwing", "attrs": attrs, "trails": trails, "layers": {"Wake": wake}}
 
 
+def kick_swing():
+    """Kicks: the fist swing's streak, wider, behind the kicking foot (only that one: the standing leg is
+    left alone), with air pulled along behind it. At the fastest point it fires KickPush."""
+    trails = [
+        Trail("Streak", 0.16, [[0, 0.7, 0], [0.4, 0.85, 0], [1, 1, 0]], [[0, 1, 0], [1, 0.35, 0]], face_camera=True,
+              attrs={"Width": 1.2, "Accent": True}),
+        Trail("Core", 0.11, [[0, 0.55, 0], [1, 1, 0]], [[0, 1, 0], [1, 0.2, 0]], face_camera=True,
+              attrs={"Width": 0.45, "Accent": True}),
+    ]
+    wake = [
+        Layer("wind_swirl", "AirWisps", continuous=True, rate=70, life=(0.2, 0.32), size=1.4, dir=BACK, ori=CAM,
+              spread=(25, 25), speed=(1, 4), drag=6, rotspeed=(60, 160), color=WIND_LIGHT, transp=AIR_SOFT,
+              flags=ACCENT),
+        Layer("streak", "AirStreaks", continuous=True, rate=40, life=(0.07, 0.15), size=0.9, dir=BACK, spread=(10, 10),
+              speed=(14, 26), drag=10, color=WIND_LIGHT, transp=STREAK, z=1),
+    ]
+    attrs = {"Kind": "Kick", "OnSpeed": 36.0, "OffSpeed": 24.0, "Burst": "KickPush", "BurstAlong": 0.0,
+             "BurstAhead": 0.8}
+    return {"name": "KickSwing", "attrs": attrs, "trails": trails, "layers": {"Wake": wake}}
+
+
 def sword_cut():
     """Fired by SwordSwing at the fastest point of a slash, at the blade's last fifth. LookVector = the
     blade's travel, UpVector = off the swing plane, so TOP + VelocityPerpendicular lies in the plane:
@@ -709,8 +730,56 @@ def fist_push():
     return {"name": "FistPush", "layers": {"": push}}
 
 
+def kick_push():
+    """Fired by KickSwing at the fastest point of a kick, just ahead of the foot, looking along it: the
+    fist's push of air, bigger - a wind burst, a pressure ring, a swirl and streaks."""
+    push = [
+        Layer("wind_burst", "AirPush", spread=(0, 0), count=1, life=(0.22, 0.32), size=4.5, dir=FRONT, ori=VEL_PERP,
+              speed=(0.1, 0.1), color=WHITE, transp=AIR, flags=ACCENT),
+        Layer("air_shock", "PressureRing", count=1, life=(0.14, 0.2), size=3.6, dir=FRONT, ori=VEL_PERP,
+              speed=(0.15, 0.15), drag=3.8, color=WHITE, transp=AIR),
+        Layer("wind_swirl", "AirSwirl", count=1, life=(0.22, 0.32), size=3, dir=FRONT, ori=VEL_PERP, spread=(10, 10),
+              speed=(0.05, 0.05), rotspeed=(80, 160), color=WIND_LIGHT, transp=AIR_SOFT, flags=ACCENT),
+        Layer("wind_arc", "WindArcs", count=1, life=(0.18, 0.28), size=3.5, dir=FRONT, ori=VEL_PERP, speed=(0.5, 2),
+              rotspeed=(200, 400), color=WIND_GREY, transp=AIR, le=0.4, br=1),
+        Layer("streak", "AirStreaks", count=4, life=(0.07, 0.15), size=1.1, dir=FRONT, spread=(15, 15),
+              speed=(35, 55), drag=12, color=WIND_LIGHT, transp=STREAK, z=1),
+    ]
+    return {"name": "KickPush", "layers": {"": push}}
+
+
+def body_slam():
+    """A body slammed into the floor (a suplex, a chokeslam): a smaller ground slam - air blasted out flat,
+    a low ring of smoke and dust rolling outward, grit and pebbles thrown up, a few cracks, and dust that
+    hangs a moment. Place it at the floor point under the body."""
+    ground = [
+        Layer("wind_burst", "AirBlast", spread=(0, 0), count=1, life=(0.35, 0.5), size=14, dir=TOP, ori=VEL_PERP,
+              speed=(0.1, 0.1), color=WHITE, transp=AIR, flags=ACCENT),
+        Layer("wind_fb", "Wind", count=2, life=(0.15, 0.5), size=15, dir=TOP, ori=VEL_PERP, speed=(6, 6),
+              rotspeed=(-444, -130), drag=6, flags=ACCENT),
+        Layer("wind_spin2", "Wind2", count=1, life=(0.2, 0.6), size=14, dir=TOP, ori=VEL_PERP, speed=(6, 6),
+              rotspeed=(108, 266), drag=6),
+        Layer("air_shock", "PressureRing", count=1, life=(0.2, 0.3), size=13, dir=TOP, ori=VEL_PERP,
+              speed=(0.15, 0.15), drag=3.8, color=WHITE, transp=AIR),
+        Layer("air_ring", "AirRing", count=1, life=(0.12, 0.25), size=16, dir=TOP, ori=VEL_PERP, speed=(6, 6),
+              drag=10, le=0.3, br=1, color=WIND_LIGHT, transp=AIR_SOFT),
+        Layer("smoke_burst", "SmokeWall", count=7, life=(0.35, 0.8), size=4.8, dir=FRONT, spread=(0, 360),
+              speed=(60, 85), drag=10, accel=(0, -4, 0), color=GREY, flags=GROUND),
+        Layer("dust", "Dust", count=8, life=(0.5, 1.0), size=3, dir=FRONT, spread=(8, 360), speed=(14, 32),
+              drag=7.4, accel=(0, 1.6, 0), color=GREY, transp=DUST_FADE, flags=GROUND),
+        Layer("billow", "Billow", count=3, life=(0.5, 1.2), size=3.8, dir=TOP, spread=(60, 60), speed=(10, 25),
+              drag=7, accel=(0, -6, 0), flags=GROUND),
+        Layer("rock", "Pebbles", count=10, life=(0.4, 1.0), size=0.3, dir=TOP, spread=(55, 55), speed=(18, 45),
+              drag=5.6, accel=(0, -68, 0), flags=GROUND),
+        Layer("crack", "Cracks", count=1, life=(1.4, 1.4), size=9, dir=TOP, ori=VEL_PERP, flags={"GroundOnly": True}),
+        Layer("smoke_linger", "DustHang", count=4, life=(1.2, 2.4), size=7, dir=FRONT, spread=(0, 360),
+              speed=(4, 25), drag=3, color=DARK, delay=0.05, flags=GROUND),
+    ]
+    return {"name": "BodySlam", "layers": {"Ground": ground}, "ground_offset": 0}
+
+
 EFFECTS = [m1_hit, m1_final, heavy_hit, ground_slam, dash_burst, dash_trail, footstep, land, jump, slide_dust,
-           run_dust, sword_swing, fist_swing, sword_cut, sword_thrust, fist_push]
+           run_dust, sword_swing, fist_swing, sword_cut, sword_thrust, fist_push, kick_swing, kick_push, body_slam]
 
 
 # --------------------------------------------------------------------------- export

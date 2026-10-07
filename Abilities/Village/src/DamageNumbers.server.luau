@@ -10,9 +10,10 @@ local TweenService = game:GetService("TweenService")
 local ORANGE = Color3.fromRGB(255, 196, 92)
 local BLUE = Color3.fromRGB(150, 215, 255)
 local TEAL = Color3.fromRGB(130, 245, 215)
+local BRICK = Color3.fromRGB(255, 165, 135)
 local GREY = Color3.fromRGB(190, 195, 205)
 local WHITE = Color3.fromRGB(240, 242, 248)
-local KIT_COLOR = { Jajanken = ORANGE, Killua = BLUE, Leorio = TEAL }
+local KIT_COLOR = { Jajanken = ORANGE, Killua = BLUE, Leorio = TEAL, Brawler = BRICK }
 
 local function float(victim: Instance, text: string, color: Color3, scale: number?)
 	local head = victim:FindFirstChild("Head") or victim:FindFirstChild("HumanoidRootPart")
@@ -63,7 +64,9 @@ if Combat then
 	Combat.Resolved.Event:Connect(function(_attacker: Instance, victim: Instance, outcome: string, hit: any)
 		local name, color = named(hit.Ability)
 		local damage = math.round(hit.Damage or 0)
-		if outcome == "Hit" then
+		if outcome == "Hit" and hit.StunKind == "Grabbed" then
+			float(victim, "GRABBED", GREY, 0.8)
+		elseif outcome == "Hit" then
 			float(victim, string.format("%d  %s", damage, name), color)
 		elseif outcome == "Blocked" then
 			local chip = (hit.Damage or 0) * Combat.Settings.ChipDamage

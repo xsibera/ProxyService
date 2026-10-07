@@ -106,7 +106,7 @@ for name, spec in pairs(fixture.templates) do
 		emitter(wake, n, { Continuous = true })
 	end
 end
-for _, name in ipairs({ "SwordCut", "SwordThrust", "FistPush" }) do
+for _, name in ipairs({ "SwordCut", "SwordThrust", "FistPush", "KickPush" }) do
 	emitter(attachment(effects, name), "Air", { EmitCount = 1, EmitDelay = 0 })
 end
 
@@ -140,6 +140,10 @@ local function makeCharacter(name, withSword)
 		local shoulder = mock.newInstance("Motor6D", side .. " Shoulder")
 		shoulder.Part0, shoulder.Part1, shoulder.C0 = torso, arm, CFrame.new(x, 0.5, 0)
 		shoulder.Parent = torso
+		local leg = part(side .. " Leg", Vector3.new(1, 2, 1))
+		local hip = mock.newInstance("Motor6D", side .. " Hip")
+		hip.Part0, hip.Part1, hip.C0 = torso, leg, CFrame.new(x, -1, 0)
+		hip.Parent = torso
 	end
 	if withSword then
 		local handle = part("Handle", Vector3.new(0.24, 0.24, 0.95))
@@ -329,6 +333,54 @@ for _, name in ipairs({ "m1-1", "m1-2", "m1-3", "m1-4", "m1-5", "running attack"
 			name .. ": push just ahead of the knuckles"
 		)
 	end
+end
+
+print("== Kicks: only the kicking foot trails")
+local kicker, kickerParts = makeCharacter("Kicker", false)
+local FOOT = Vector3.new(0, -1, 0)
+for _, name in ipairs({ "roundhouse", "axe kick" }) do
+	local clip = fixture.kick[name]
+	local on, bursts = playClip("KickSwing", kicker, kickerParts, clip)
+	local pos, peak = track(clip, "Right Leg", FOOT)
+	print(
+		("  %-15s Right Leg %s, Left Leg %s, arms %s/%s  peak %d  hit %d  burst %s"):format(
+			name,
+			span(on["Right Leg"]),
+			span(on["Left Leg"]),
+			span(on["Right Arm"]),
+			span(on["Left Arm"]),
+			peak,
+			clip.hit,
+			bursts[1] and (bursts[1].name .. "@" .. bursts[1].frame) or "none"
+		)
+	)
+	check(on["Right Leg"] ~= nil and #on["Right Leg"] >= 3, name .. ": the kicking foot trails")
+	check(on["Left Leg"] == nil, name .. ": the standing foot doesn't")
+	check(on["Right Arm"] == nil and on["Left Arm"] == nil, name .. ": the arms don't (it's a kick swing)")
+	local frames = on["Right Leg"] or {}
+	check(
+		#frames > 0 and frames[1] <= clip.hit and frames[#frames] >= clip.hit - 1,
+		name .. ": trailing through the hit"
+	)
+	-- a push on each swing of the leg (the axe kick's rise and its chop), one of them at the hit, looking
+	-- the way the foot was going round then (it travels on an arc, so within a few frames of it)
+	local atHit = nil
+	for _, b in ipairs(bursts) do
+		check(b.name == "KickPush", name .. ": KickPush bursts")
+		if b.frame >= clip.hit - 1 and b.frame <= clip.hit + 3 then
+			atHit = b
+		end
+	end
+	check(atHit ~= nil, name .. ": a push at the hit")
+	if atHit then
+		local along = false
+		for f = math.max(atHit.frame - 4, 1), atHit.frame do
+			local travel = rootAt(f / 60):VectorToWorldSpace((pos[f] - pos[f - 1]).Unit)
+			along = along or atHit.cframe.LookVector:Dot(travel) > 0.9
+		end
+		check(along, name .. ": the push looks along the kick")
+	end
+	_ = peak
 end
 
 print("== Dashing and spinning with the arms still")

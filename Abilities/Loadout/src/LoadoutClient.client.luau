@@ -24,6 +24,9 @@ local ACCENT = {
 	Gon = Color3.fromRGB(255, 140, 40),
 	Killua = Color3.fromRGB(120, 205, 255),
 	Leorio = Color3.fromRGB(110, 240, 210),
+	Brawler = Color3.fromRGB(255, 160, 130),
+	Striker = Color3.fromRGB(255, 160, 130),
+	Grappler = Color3.fromRGB(255, 160, 130),
 }
 local PANEL = Color3.fromRGB(18, 20, 26)
 local CARD = Color3.fromRGB(30, 33, 42)
@@ -235,11 +238,16 @@ for _, ability in Loadout.Order do
 		local header = label(column, character, 16, Enum.Font.GothamBlack, ACCENT[character] or TEXT)
 		header.Size = UDim2.new(1, 0, 0, 22)
 		header.TextXAlignment = Enum.TextXAlignment.Left
-		local list = Instance.new("Frame")
+		local list = Instance.new("ScrollingFrame") -- scrolls when a character has more cards than fit
 		list.Name = "List"
 		list.Position = UDim2.fromOffset(0, 26)
 		list.Size = UDim2.new(1, 0, 1, -26)
 		list.BackgroundTransparency = 1
+		list.BorderSizePixel = 0
+		list.ScrollBarThickness = 4
+		list.ScrollingDirection = Enum.ScrollingDirection.Y
+		list.AutomaticCanvasSize = Enum.AutomaticSize.Y
+		list.CanvasSize = UDim2.new()
 		list.Parent = column
 		local layout = Instance.new("UIListLayout")
 		layout.Padding = UDim.new(0, 6)
@@ -261,11 +269,11 @@ local refresh: () -> ()
 
 for order, ability in Loadout.Order do
 	local info = Loadout.Abilities[ability]
-	local list = columns[info.Character]:FindFirstChild("List") :: Frame
+	local list = columns[info.Character]:FindFirstChild("List") :: ScrollingFrame
 	local button = Instance.new("TextButton")
 	button.Name = ability
 	button.LayoutOrder = order
-	button.Size = UDim2.new(1, 0, 0, 58)
+	button.Size = UDim2.new(1, -6, 0, 58)
 	button.BackgroundColor3 = CARD
 	button.AutoButtonColor = true
 	button.Text = ""
