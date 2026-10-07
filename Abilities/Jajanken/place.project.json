@@ -83,6 +83,9 @@
       },
       "Movement": {
         "$path": "../Movement/build/Movement.rbxmx"
+      },
+      "Leorio": {
+        "$path": "../Leorio/build/Leorio.rbxmx"
       }
     },
 
@@ -105,6 +108,9 @@
       },
       "MovementServer": {
         "$path": "../Movement/src/MovementServer.server.luau"
+      },
+      "LeorioServer": {
+        "$path": "../Leorio/src/LeorioServer.server.luau"
       }
     },
 
@@ -137,6 +143,9 @@
         },
         "MovementClient": {
           "$path": "../Movement/src/MovementClient.client.luau"
+        },
+        "LeorioClient": {
+          "$path": "../Leorio/src/LeorioClient.client.luau"
         }
       }
     }

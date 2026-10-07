@@ -27,7 +27,9 @@
 	  Combat.stun(model, seconds, kind?)
 	  Combat.canAct(model) -> boolean           alive, not stunned, blocking or busy (check before a cast)
 	  Combat.setBusy(model, seconds?) / Combat.clearBusy(model)   mid-attack (nil seconds: until cleared)
-	  Combat.announce(attacker, hitAt, ability, position?)   an attack is on its way (NPC parries, AI)
+	  Combat.announce(attacker, hitAt, ability, position?, from?)   an attack is on its way (NPC parries,
+	                                            AI); from: where it comes from when that isn't the
+	                                            attacker (a warp hole)
 	  Combat.setCounter(model, seconds) / Combat.setIntangible(model, seconds)
 	  Combat.setBlocking(model, on)             what the F key does (CombatServer calls it)
 	  Combat.knockback(model, velocity)
@@ -35,7 +37,7 @@
 	  Resolved(attacker, victim, outcome, hit)   every resolved hit
 	  Countered(victim, attacker, hit)           a counter stance caught a hit (the kit acts on it)
 	  Interrupted(model)                         a stun cut the model's action short: cancel its cast
-	  Announced(attacker, hitAt, ability, position)
+	  Announced(attacker, hitAt, ability, position, from)
 	Clients get Combat.Remote: "Parried", "Blocked", "GuardBroken", "Countered", "Evaded" (for effects).
 ]]
 
@@ -249,8 +251,8 @@ function Combat.setIntangible(model: Instance, seconds: number)
 	model:SetAttribute("IntangibleUntil", Combat.now() + seconds)
 end
 
-function Combat.announce(attacker: Instance, hitAt: number, ability: string, position: Vector3?)
-	Combat.Announced:Fire(attacker, hitAt, ability, position)
+function Combat.announce(attacker: Instance, hitAt: number, ability: string, position: Vector3?, from: Vector3?)
+	Combat.Announced:Fire(attacker, hitAt, ability, position, from)
 end
 
 function Combat.knockback(model: Instance, velocity: Vector3)

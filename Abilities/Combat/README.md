@@ -76,7 +76,7 @@ local outcome = Combat.resolve(attackerModel, victimModel, {
 Before an attack:
 - **Check** `Combat.canAct(model)`: not stunned, blocking or mid-attack.
 - **Mark** the attacker busy with `Combat.setBusy(model, seconds)`.
-- **Announce** it with `Combat.announce(model, hitAt, ability, position?)`, so AI can react.
+- **Announce** it with `Combat.announce(model, hitAt, ability, position?, from?)`, so AI can react.
 
 When something stuns your attacker, cancel the attack: listen for `Combat.Interrupted`.
 
@@ -96,7 +96,7 @@ Server signals (BindableEvents, so connect to `.Event`):
 | `Resolved` | `(attacker, victim, outcome, hit)` | every resolved hit. The ability place's damage numbers use it. |
 | `Countered` | `(victim, attacker, hit)` | a counter stance caught a hit |
 | `Interrupted` | `(model)` | a stun cut the model's action short |
-| `Announced` | `(attacker, hitAt, ability, position)` | an attack is on its way |
+| `Announced` | `(attacker, hitAt, ability, position, from)` | an attack is on its way (`from`: where it comes from, when that isn't the attacker, e.g. a warp hole) |
 
 The ability place's **training dummies** (`Village/src/DummyBrains.server.luau`) are written against this API:
 - a **Blocking Dummy** that keeps its guard up and turns to face you, though not instantly;

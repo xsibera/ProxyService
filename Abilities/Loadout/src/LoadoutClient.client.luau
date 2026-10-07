@@ -23,6 +23,7 @@ local Remote = Folder:WaitForChild("Remote") :: RemoteEvent
 local ACCENT = {
 	Gon = Color3.fromRGB(255, 140, 40),
 	Killua = Color3.fromRGB(120, 205, 255),
+	Leorio = Color3.fromRGB(110, 240, 210),
 }
 local PANEL = Color3.fromRGB(18, 20, 26)
 local CARD = Color3.fromRGB(30, 33, 42)
@@ -131,11 +132,26 @@ end
 
 --------------------------------------------------------------------------- the menu
 
+-- one column of cards per character, ~215 px each
+local characterCount = 0
+do
+	local seen = {}
+	for _, ability in Loadout.Order do
+		local character = Loadout.Abilities[ability].Character
+		if not seen[character] then
+			seen[character] = true
+			characterCount += 1
+		end
+	end
+end
+local MENU_W = math.max(660, 40 + 215 * characterCount)
+local MENU_H = 470
+
 local menu = Instance.new("Frame")
 menu.Name = "Menu"
 menu.AnchorPoint = Vector2.new(0.5, 0.5)
 menu.Position = UDim2.fromScale(0.5, 0.47)
-menu.Size = UDim2.fromOffset(660, 470)
+menu.Size = UDim2.fromOffset(MENU_W, MENU_H)
 menu.BackgroundColor3 = PANEL
 menu.BackgroundTransparency = 0.05
 menu.Visible = false
@@ -143,7 +159,7 @@ menu.Parent = gui
 corner(menu, 12)
 stroke(menu, Color3.fromRGB(70, 76, 92), 1.5)
 local sizeLimit = Instance.new("UISizeConstraint")
-sizeLimit.MaxSize = Vector2.new(660, 470)
+sizeLimit.MaxSize = Vector2.new(MENU_W, MENU_H)
 sizeLimit.Parent = menu
 local scale = Instance.new("UIScale")
 scale.Parent = menu
@@ -177,7 +193,7 @@ local presetRow = Instance.new("Frame")
 presetRow.Name = "Presets"
 presetRow.AnchorPoint = Vector2.new(1, 0)
 presetRow.Position = UDim2.new(1, -54, 0, 14)
-presetRow.Size = UDim2.fromOffset(260, 30)
+presetRow.Size = UDim2.fromOffset(118 * #Loadout.PresetOrder, 30)
 presetRow.BackgroundTransparency = 1
 presetRow.Parent = menu
 local presetLayout = Instance.new("UIListLayout")
@@ -453,7 +469,7 @@ RunService.RenderStepped:Connect(function()
 	local camera = workspace.CurrentCamera
 	if camera then
 		local viewport = camera.ViewportSize
-		scale.Scale = math.clamp(math.min(viewport.X / 700, viewport.Y / 520), 0.55, 1)
+		scale.Scale = math.clamp(math.min(viewport.X / (MENU_W + 40), viewport.Y / (MENU_H + 50)), 0.5, 1)
 	end
 end)
 

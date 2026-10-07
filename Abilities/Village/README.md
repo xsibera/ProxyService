@@ -14,7 +14,7 @@ A small Hunter x Hunter style village after Whale Island, Gon's home. It's the m
   Some are two storeys. **Mito's**, the tavern on the harbour road, has its sign out. Behind the streets there's a back row of houses and fenced vegetable gardens.
 - **The harbour**: the road runs south down to a sandy beach that slopes into the sea, a long wooden pier on posts, a moored sailing boat, and crates and barrels.
 - **The great tree** on its hill, west of the village.
-- **The training yard**, east down the yard road: a fenced dirt yard with the training dummies (plain ones, plus the parry system's Blocking, Parrying and Sparring dummies) and the animation rigs (Gon's, Killua's, the M1s', and sprint/roll's) in a row along the north fence.
+- **The training yard**, east down the yard road: a fenced dirt yard with the training dummies (plain ones, plus the parry system's Blocking, Parrying and Sparring dummies) and the animation rigs (Gon's, Killua's, Leorio's, the M1s', and sprint/roll's) in a row along the north fence.
 - **The bandit camp**: through the village gate (the "WHALE ISLAND" sign) and up the dirt path into the forest. It's a clearing behind a palisade of sharpened logs, with tents round a campfire, crates and a lookout, and five **bandits**.
 - **The forest** all round, with rocks. Past the edge of the island the sea is walled off.
 
@@ -54,6 +54,6 @@ Tests (`luaurun`, from this folder):
   - being parried, and guarding some of your attacks;
   - giving up at the leash and healing;
   - respawning.
-- `tests/dummies.luau`, 23 checks: the training dummies.
+- `tests/dummies.luau`, 25 checks: the training dummies, including the Parrying Dummy turning to face a warp hole.
 
 The village is built from parts only (no terrain), so it builds headless. Check how it looks in Studio and tell me what to change: every building is one line in `houses()`.

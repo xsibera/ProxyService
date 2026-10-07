@@ -25,8 +25,6 @@ wrong way, the striking hand chambers) -> a loaded slow-in -> a 3-4 frame whip (
 Every clip keys the legs (these are committed attacks: the walk doesn't drive them).
 """
 
-import importlib.util
-import math
 import os
 import sys
 
@@ -34,94 +32,15 @@ import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "..", "Animations"))
+sys.path.insert(0, os.path.join(HERE, "..", "Shared"))
 from animkit import FPS, Clip  # noqa: E402
-
-
-def _jajanken_solvers():
-    """Jajanken's anims.py, loaded under its own name (this file is anims.py too)."""
-    spec = importlib.util.spec_from_file_location("jajanken_anims", os.path.join(HERE, "..", "Jajanken", "anims.py"))
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-J = _jajanken_solvers()
+from stance import J, check_legs, hold, set_stance  # noqa: E402
 
 FULL = J.FULL
 arm_w, arm_t, reach, heading, plant = J.arm_w, J.arm_t, J.reach, J.heading, J.plant
 
 STANDING = [0, 0, 0, 0, 0, 0]
 GROUND = J.GROUND
-MIN_FEET_GAP = 0.9  # studs: the feet never come closer than this side to side (the reference: 0.96+)
-MAX_SUPPORT_TILT = 25  # deg: with both feet down, one leg is always this close to upright (reference: 24)
-
-
-def hips(root):
-    """Where each leg hangs from (the top centre of the leg), in the HumanoidRootPart's space."""
-    t = J.torso_of(root)
-    return {j: (t @ np.array([x, -1.0, 0.0, 1.0]))[:3] for j, x in (("LLeg", -0.5), ("RLeg", 0.5))}
-
-
-def set_stance(c, f, root, back=0.8, front=-0.15, lead=None, out=0.15, k="ease"):
-    """Key the legs the way the reference ability animations do (ice downslam): the lead foot (on
-    the side of the body that faces forward: the left when the torso is turned right) just ahead of
-    its own hip, so that leg stays almost upright, and the other foot `back` studs behind its hip -
-    a short stagger while winding up, stretched out long on the big hit. Both sit at hip width, a
-    touch outside it, and the body gets low by sliding the legs up into the hips (the reference's
-    bent knee). Returns the floor spots, so later keys can keep the feet planted there (hold)."""
-    yaw = (root[1] + 180) % 360 - 180
-    lead = lead or ("LLeg" if yaw <= 0 else "RLeg")
-    h = hips(root)
-    spots = {}
-    for joint in ("LLeg", "RLeg"):
-        side = -1 if joint == "LLeg" else 1
-        spots[joint] = (h[joint][0] + side * out, h[joint][2] + (front if joint == lead else back))
-    hold(c, f, root, spots, k)
-    return spots
-
-
-def hold(c, f, root, spots, k="ease"):
-    """Key the legs with the feet still planted on `spots` (the torso turns and sinks above them)."""
-    J.feet_at(c, f, root, spots["LLeg"], spots["RLeg"], k)
-
-
-def feet_gap(baked, f):
-    """Side-to-side distance between the feet at frame f, in the torso's frame (right minus left)."""
-    torso = J.torso_of(baked["Root"][f])
-    inv = np.linalg.inv(torso)
-    xs = {}
-    for joint in ("LLeg", "RLeg"):
-        foot = J.foot(joint, baked["Root"][f], baked[joint][f])
-        xs[joint] = (inv @ np.append(foot, 1))[0]
-    return xs["RLeg"] - xs["LLeg"]
-
-
-def leg_tilt(joint, root, ch):
-    """How far a leg leans from upright (deg), and where its foot is (root space)."""
-    t = J.torso_of(root)
-    c0, c1 = J.MOTORS[joint]
-    pos, rot = J.to_transform(joint, list(ch))
-    leg = t @ c0 @ J.cf(pos, rot) @ J.inv(c1)
-    top, bottom = (leg @ np.array([0, 1.0, 0, 1]))[:3], (leg @ np.array([0, -1.0, 0, 1]))[:3]
-    v = bottom - top
-    return math.degrees(math.acos(-v[1] / np.linalg.norm(v))), bottom
-
-
-def check_legs(c, baked):
-    """The legs as the reference ability animations have them, in every frame of a clip that keys
-    them: the feet never come within MIN_FEET_GAP of each other side to side (no crossing), and
-    while both feet are on the floor at least one leg stands nearly upright (MAX_SUPPORT_TILT; the
-    reference's never leans past 24 deg) - no splayed A-frame stances."""
-    if "LLeg" not in baked:
-        return
-    for f in range(len(baked["Root"])):
-        gap = feet_gap(baked, f)
-        assert gap >= MIN_FEET_GAP, "%s: the feet come %.2f studs apart at f%d (crossing)" % (c.name, gap, f)
-        tilts = [leg_tilt(j, baked["Root"][f], baked[j][f]) for j in ("LLeg", "RLeg")]
-        grounded = all(foot[1] < GROUND + 0.1 for _, foot in tilts)
-        upright = min(t for t, _ in tilts)
-        assert not grounded or upright <= MAX_SUPPORT_TILT, "%s: both legs lean %.0f+ deg at f%d (splayed)" % (
-            c.name, upright, f)
 
 
 def rest(c, f=0):
@@ -500,4 +419,3 @@ if __name__ == "__main__":
         speed = max(float(np.linalg.norm(np.diff(np.asarray(baked["Root"])[:, :3], axis=0), axis=1).max()) * FPS, 0)
         print("%-20s %3d frames  hits %-14s smoothing %s  root peak %.0f deg/s" % (
             c.name, c.frames, sorted(f for f, m in c.markers.items() if "Hit" in m), c.smoothing, speed))
-    _ = math

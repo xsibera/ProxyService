@@ -77,6 +77,17 @@ Combat.announce(pModel, Combat.now() + 0.3, "Thunderbolt", Vector3.new(21, 0, 1)
 mock.advance(0.25)
 check(Combat.isBlocking(parrierModel), "reacts to one landing on it")
 mock.advance(1)
+local hole = Vector3.new(24, 4, 3) -- a warp hole behind it, to its right
+Combat.announce(pModel, Combat.now() + 0.3, "WarpPunch", Vector3.new(20, 3, 0), hole)
+mock.advance(0.25)
+local parrierRoot = parrierModel:FindFirstChild("HumanoidRootPart")
+local toHole = Vector3.new(hole.X - 20, 0, hole.Z).Unit
+check(
+	Combat.isBlocking(parrierModel) and parrierRoot.CFrame.LookVector:Dot(toHole) > 0.99,
+	"a blow out of a warp hole: it turns to the hole, not to whoever threw it"
+)
+check(Combat.resolve(pModel, parrierModel, { Damage = 10, From = hole }) == "Parried", "and parries it")
+mock.advance(1)
 
 print("== Sparring Dummy")
 pModel:PivotTo(CFrame.lookAt(Vector3.new(0, 3, -45), Vector3.new(0, 3, -40))) -- 5 in front of it, facing it

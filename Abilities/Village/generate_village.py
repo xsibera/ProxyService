@@ -564,10 +564,11 @@ def training_yard(rig_source):
         ("Killua", "KilluaRig.rbxmx"),
         ("Melee", "MeleeRig.rbxmx"),
         ("Movement", "MovementRig.rbxmx"),
+        ("Leorio", "LeorioRig.rbxmx"),
     )):
         rig = jajanken.built(os.path.join(package, "build", file))
         if rig is not None:
-            rigs.append(jajanken._reref(jajanken.moved(rig, jajanken.at(76 + i * 10, 3, -26, 180))))
+            rigs.append(jajanken._reref(jajanken.moved(rig, jajanken.at(76 + i * 9, 3, -26, 180))))
     out.append(B.item("Model", "Animation Rigs", rigs))
     return model("Training Yard", out)
 

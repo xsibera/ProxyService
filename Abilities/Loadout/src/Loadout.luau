@@ -71,16 +71,53 @@ Loadout.Abilities = {
 		Name = "Lightning Dash",
 		Hint = "Up to three lightning-quick teleports, striking whoever you pass. Untouchable mid-dash.",
 	},
+	WarpPunch = {
+		Kit = "Leorio",
+		Character = "Leorio",
+		Name = "Warp Punch",
+		Hint = "Punch the floor: your fist comes out of a warp hole beside your target's head. Face the hole to block it.",
+	},
+	RemoteJab = {
+		Kit = "Leorio",
+		Character = "Leorio",
+		Name = "Remote Jab",
+		Hint = "A quick jab into a warp hole: it lands from behind your target and pulls them toward you.",
+	},
+	WarpBarrage = {
+		Kit = "Leorio",
+		Character = "Leorio",
+		Name = "Warp Barrage",
+		Hint = "Pound the floor: fists come at your target from all sides, then one hammers down from above.",
+	},
+	PortalBurst = {
+		Kit = "Leorio",
+		Character = "Leorio",
+		Name = "Portal Burst",
+		Hint = "Both fists into the floor: fists burst up from a ring of warp holes, launching everyone near you.",
+	},
 } :: { [string]: Ability }
 
 -- the order the menu lists them in, by character
-Loadout.Order = { "Rock", "Paper", "Scissors", "LightningPalm", "Thunderbolt", "Whirlwind", "LightningDash" }
+Loadout.Order = {
+	"Rock",
+	"Paper",
+	"Scissors",
+	"LightningPalm",
+	"Thunderbolt",
+	"Whirlwind",
+	"LightningDash",
+	"WarpPunch",
+	"RemoteJab",
+	"WarpBarrage",
+	"PortalBurst",
+}
 
 Loadout.Presets = {
 	Gon = { "Rock", "Paper", "Scissors", "" },
 	Killua = { "LightningPalm", "Thunderbolt", "Whirlwind", "LightningDash" },
+	Leorio = { "WarpPunch", "RemoteJab", "WarpBarrage", "PortalBurst" },
 }
-Loadout.PresetOrder = { "Gon", "Killua" }
+Loadout.PresetOrder = { "Gon", "Killua", "Leorio" }
 Loadout.Default = "Killua"
 
 --------------------------------------------------------------------------- reading and writing

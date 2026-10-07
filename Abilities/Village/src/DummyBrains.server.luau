@@ -125,7 +125,8 @@ local function aimedAt(model: Model, from: BasePart, position: Vector3?): boolea
 	return offset.Magnitude <= 16 and flat(offset):Dot(flat(from.CFrame.LookVector)) > 0.3
 end
 
-Combat.Announced.Event:Connect(function(attacker: Instance, hitAt: number, _ability: string, position: Vector3?)
+-- source: where the blow comes from, when that isn't the attacker (a warp hole's)
+local function onAnnounced(attacker: Instance, hitAt: number, _ability: string, position: Vector3?, source: Vector3?)
 	local from = attacker:IsA("Model") and rootOf(attacker)
 	if not from or not Players:GetPlayerFromCharacter(attacker) then
 		return -- players' attacks only
@@ -136,7 +137,7 @@ Combat.Announced.Event:Connect(function(attacker: Instance, hitAt: number, _abil
 				if not (model.Parent and Combat.alive(model)) or Combat.isStunned(model) then
 					return
 				end
-				turnToward(model, from.Position, math.huge)
+				turnToward(model, source or from.Position, math.huge)
 				Combat.setBlocking(model, true)
 				Combat.openParry(model)
 				local press = (parriers[model] or 0) + 1
@@ -149,7 +150,8 @@ Combat.Announced.Event:Connect(function(attacker: Instance, hitAt: number, _abil
 			end)
 		end
 	end
-end)
+end
+Combat.Announced.Event:Connect(onAnnounced)
 
 -- the telegraph: it glows red and pulls its right arm back, then throws it forward
 local function windUp(model: Model, seconds: number): (boolean) -> ()

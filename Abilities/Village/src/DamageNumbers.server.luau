@@ -9,9 +9,10 @@ local TweenService = game:GetService("TweenService")
 
 local ORANGE = Color3.fromRGB(255, 196, 92)
 local BLUE = Color3.fromRGB(150, 215, 255)
+local TEAL = Color3.fromRGB(130, 245, 215)
 local GREY = Color3.fromRGB(190, 195, 205)
 local WHITE = Color3.fromRGB(240, 242, 248)
-local KIT_COLOR = { Jajanken = ORANGE, Killua = BLUE }
+local KIT_COLOR = { Jajanken = ORANGE, Killua = BLUE, Leorio = TEAL }
 
 local function float(victim: Instance, text: string, color: Color3, scale: number?)
 	local head = victim:FindFirstChild("Head") or victim:FindFirstChild("HumanoidRootPart")

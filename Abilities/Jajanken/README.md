@@ -25,10 +25,11 @@ Gamepad uses X / Y / B. Touch devices get on-screen buttons. In the ability plac
   - **M1s on left click** ([Melee](../Melee/README.md)): a five-hit stun string;
   - Gon's Jajanken;
   - **Killua's lightning** ([Killua](../Killua/README.md));
+  - **Leorio's warp punches** ([Leorio](../Leorio/README.md));
   - the **parry system** (F to block, tap F to parry);
   - the **ability menu** (M) and hotbar.
 
-  You start with Killua's abilities: press M and pick the Gon preset for Jajanken, or mix them. It also has **sprinting** (hold Left Ctrl or double-tap W) and **rolling** (Q), see [Movement](../Movement/README.md).
+  You start with Killua's abilities: press M and pick the Gon or Leorio preset, or mix them. It also has **sprinting** (hold Left Ctrl or double-tap W) and **rolling** (Q), see [Movement](../Movement/README.md).
 
   The map is **Whale Island** ([Village](../Village/README.md)), a small HxH-style village:
   - you spawn in the plaza;
@@ -182,11 +183,11 @@ The textures can't be downloaded here, so the effects were tuned from your emitt
   - `JajankenServer.server.luau`
   - `JajankenClient.client.luau`
 - `place.project.json` + `build.sh`: build the ability place with Rojo, from every package's folder:
-  - Melee, Movement, Killua, Combat and Loadout;
+  - Melee, Movement, Killua, Leorio, Combat and Loadout;
   - the effects pack;
   - the village (`../Village`), whose scripts are the dummies' and bandits' brains and the damage numbers.
 
-  `build.sh` builds those too, and the kits: `Jajanken.rbxm`, `../Killua/Killua.rbxm`, `../Melee/Melee.rbxm` and `../Movement/Movement.rbxm`.
+  `build.sh` builds those too, and the kits: `Jajanken.rbxm`, `../Killua/Killua.rbxm`, `../Leorio/Leorio.rbxm`, `../Melee/Melee.rbxm` and `../Movement/Movement.rbxm`.
 
 ```bash
 ./build.sh path/to/ANIMSFORCLAUDE.rbxmx path/to/nen.rbxmx path/to/rbxconv   # rbxconv: any rbx-dom rbxmx -> rbxm converter

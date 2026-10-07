@@ -1,19 +1,20 @@
 # Loadout: the ability menu
 
-A hotbar and an ability menu for a game with more than one ability kit. Each player picks which four abilities sit on **Z X C V** (gamepad X Y B R1, plus on-screen buttons on touch devices), from every kit in the game: Gon's Jajanken and Killua's lightning in the ability place.
+A hotbar and an ability menu for a game with more than one ability kit. Each player picks which four abilities sit on **Z X C V** (gamepad X Y B R1, plus on-screen buttons on touch devices), from every kit in the game: Gon's Jajanken, Killua's lightning and Leorio's warp punches in the ability place.
 
 - **The hotbar**, along the bottom of the screen, shows the four slots: each one's key, its ability (coloured by character) and its cooldown. It flashes red when a press is refused.
 - **Press M** (or the **Abilities** button) to open the menu. There's a card for every ability, grouped by character, each with a line on what it does.
   - Pick an ability and then a key, or a key and then an ability.
   - Putting an ability that's already equipped on another key swaps the two keys.
   - **Right-click** a key to empty it.
-  - **Presets** fill all four at once: **Gon** (Rock, Paper, Scissors) and **Killua** (Lightning Palm, Thunderbolt, Whirlwind, Lightning Dash).
+  - **Presets** fill all four at once: **Gon** (Rock, Paper, Scissors), **Killua** (Lightning Palm, Thunderbolt, Whirlwind, Lightning Dash) and **Leorio** (Warp Punch, Remote Jab, Warp Barrage, Portal Burst).
+  - The menu has a column of cards per character, and grows wider as kits are added.
 - New players start with the **Killua** preset (`Loadout.Default`).
 - The server keeps each player's choice in their `Loadout` attribute. It refuses changes mid-attack or while stunned, and the kits refuse to cast anything that isn't equipped.
 
 ## Files
 
-The folder is in both kits (`Killua.rbxm` and `Jajanken.rbxm`, as an optional folder) and in the ability place:
+The folder is in the kits (`Killua.rbxm`, `Leorio.rbxm` and `Jajanken.rbxm`, as an optional folder) and in the ability place:
 
 | | Put it in |
 |---|---|
